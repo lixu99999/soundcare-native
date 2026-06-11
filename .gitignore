@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# uniapp build output
+app/unpackage/dist/
+app/unpackage/cache/
+app/unpackage/release/
+
+# IDE configs (user-specific)
+app/.hbuilderx/launch.json
+app/.hbuilderx/settings.json
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# Native plugin build artifacts
+app/nativeplugins/*/build/
+app/nativeplugins/*/Pods/
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+DerivedData/
