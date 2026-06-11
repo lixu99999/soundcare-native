@@ -7,7 +7,7 @@ iOS HRV 原生插件开发。
 ## 当前进度
 
 - ✅ 架构设计：`docs/HRV原生插件架构.md`
-- ⏳ 待 review（12 个待确认设计选择）
+- ✅ 设计 review：6 个设计决策已确认（2026-06-11）
 - ⏸ 待开发：Swift 代码、JS 封装层、manifest.json 更新
 - ⏸ 待用户在 Mac 上：HBuilderX 自定义调试基座 + 真机测试
 
