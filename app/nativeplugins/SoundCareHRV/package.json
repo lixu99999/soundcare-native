@@ -1,0 +1,26 @@
+{
+  "name": "SoundCareHRV",
+  "id": "SoundCareHRV",
+  "version": "1.0.0",
+  "description": "Apple Watch HRV 实时监测原生插件（v1 仅 iOS）",
+  "_dp_type": "nativeplugin",
+  "_dp_nativeplugin": {
+    "ios": {
+      "plugins": [
+        {
+          "type": "module",
+          "name": "SoundCareHRV",
+          "class": "SoundCareHRVModule"
+        }
+      ],
+      "integrateType": "framework",
+      "dependencies": [],
+      "frameworks": ["HealthKit"]
+    },
+    "android": {
+      "plugins": [],
+      "integrateType": "aar",
+      "dependencies": []
+    }
+  }
+}
