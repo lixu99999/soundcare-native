@@ -183,6 +183,9 @@ const generateSimulatedRRI = (targetHRV, heartRateBPM) => {
 }
 
 // 更新HRV (每5秒调用一次)
+// TODO: native APP 集成 hrv-plugin 后，应改为订阅 hrv.onUpdate 事件，
+//       并通过 music.startHRVSession(sessionId) 自动上报后端。
+//       当前是模拟数据，仅用于 UI 演示和音乐播放流程。
 const updateHRV = () => {
   if (!hrvLoopEnabled.value) return
 
