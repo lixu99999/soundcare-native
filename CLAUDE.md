@@ -10,13 +10,14 @@ iOS HRV 原生插件开发。
 - ✅ 设计 review：6 个设计决策已确认（2026-06-11）
 - ✅ Swift 插件代码（commit `553f35a`，5 文件 520 行）
 - ✅ JS 封装层（commit `ad0a353`，hrv-plugin.js + music.js startHRVSession）
-- ⏸ 待开发：manifest.json、device-pair 接入、Mac 集成清单
-- ⏸ 待用户在 Mac 上：HBuilderX 自定义调试基座 + 真机测试
+- ✅ 接入层（commit `3128f44`，manifest.json + device-pair/index.vue + Mac集成指南.md）
+- ⏸ **Mac 端待用户执行**：`docs/Mac集成指南.md` 完整流程
 
 ## 必读
 
 1. `README.md` - 项目介绍、构建命令、与微信小程序的关系
 2. `docs/HRV原生插件架构.md` - iOS 插件架构设计（必读）
+3. `docs/Mac集成指南.md` - Mac 端集成步骤（Mac Claude Code 必读）
 
 ## Mac 集成待办
 

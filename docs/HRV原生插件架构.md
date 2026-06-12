@@ -745,9 +745,9 @@ Mock 数据生成规则：
 [4] ✅ 写 Info.plist
 [5] ✅ 写 hrv-plugin.js（JS 封装层）
 [6] ✅ 改 music.js 接入 hrv-plugin（新增 startHRVSession / stopHRVSession）
-[7] ⏸ 改 device-pair/index.vue 触发授权
-[8] ⏸ 改 manifest.json 声明插件
-[9] ⏸ 写 Mac 端集成操作指南
+[7] ✅ 改 device-pair/index.vue 触发授权
+[8] ✅ 改 manifest.json 声明插件
+[9] ✅ 写 Mac 端集成操作指南（docs/Mac集成指南.md）
 ```
 
 ### 11.2 Mac 阶段（用户操作）
@@ -820,6 +820,9 @@ uniModule.executor.executeUniCallback(event: event)
 | `package.json` | 26 | `553f35a` |
 | `hrv-plugin.js` | 288 | `ad0a353` |
 | `music.js` (新增部分) | +119 | `ad0a353` |
+| `manifest.json` (新增部分) | +5 | `3128f44` |
+| `device-pair/index.vue` | 244 | `3128f44` |
+| `Mac集成指南.md` | 277 | `3128f44` |
 
 ---
 
@@ -865,11 +868,12 @@ uniapp 原生插件必须继承自 `DCUniModule`（DCloud 提供的基类），�
 
 | 文档 | 内容 |
 |------|------|
+| `docs/Mac集成指南.md` | Mac 端完整集成步骤（自定义基座、真机调试、常见问题） |
 | `SoundCare_开发指南.md` § 11 iOS 原生应用开发 | iOS 编译、IPA 结构、证书 |
 | `SoundCare_原生应用真机测试指南.md` | 真机调试流程 |
 | uniapp 原生插件官方文档 | https://nativesupport.dcloud.net.cn/NativePlugin/README |
 
 ---
 
-**当前状态**：Swift 代码（`553f35a`）+ JS 封装层（`ad0a353`）完成，待 manifest.json + device-pair + Mac 集成清单。
-**下一步**：改 `manifest.json` 声明插件 + 改 `device-pair/index.vue` 触发授权 + 写 Mac 集成操作清单。
+**当前状态**：Windows 端全部完成（commit `3128f44`）。等用户在 Mac 上执行 `docs/Mac集成指南.md`。
+**下一步**：Mac 端：git clone → npm install → HBuilderX → 自定义基座 → 真机调试。详见 `docs/Mac集成指南.md`。
