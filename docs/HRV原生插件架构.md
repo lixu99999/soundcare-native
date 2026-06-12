@@ -823,6 +823,7 @@ uniModule.executor.executeUniCallback(event: event)
 | `manifest.json` (新增部分) | +5 | `3128f44` |
 | `device-pair/index.vue` | 244 | `3128f44` |
 | `Mac集成指南.md` | 277 | `3128f44` |
+| `hrv-monitor/index.vue` | 313 | `24f6be1` |
 
 ---
 
@@ -875,5 +876,6 @@ uniapp 原生插件必须继承自 `DCUniModule`（DCloud 提供的基类），�
 
 ---
 
-**当前状态**：Windows 端全部完成（commit `3128f44`）。等用户在 Mac 上执行 `docs/Mac集成指南.md`。
+**当前状态**：Windows 端全部完成（commit `24f6be1`，含 hrv-monitor 接入）。等用户在 Mac 上执行 `docs/Mac集成指南.md`。
 **下一步**：Mac 端：git clone → npm install → HBuilderX → 自定义基座 → 真机调试。详见 `docs/Mac集成指南.md`。
+**v1.1 计划**：player/index.vue 接入 `startHRVSession` 替换 mock updateHRV（963 行，重构风险高，留到 v1.1）。
