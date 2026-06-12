@@ -1,6 +1,7 @@
 // SoundCare API Client
 
 import CONFIG from '../config.js'
+import hrv from './hrv-plugin.js'
 
 const API_BASE_URL = CONFIG.API_BASE_URL
 const API_TIMEOUT = CONFIG.API_TIMEOUT
@@ -214,4 +215,123 @@ export async function updateUserPreferences(user_id, preferences) {
   }
 
   return preferences
+}
+
+// ============ HRV 监测会话管理（iOS 原生 + Apple Watch）============
+// 以下函数依赖 hrv-plugin.js（仅在 iOS 原生 APP 可用）
+
+let activeHRVSession = null
+
+/**
+ * 启动 HRV 监测会话
+ * - 自动调用 hrv.requestAuthorization 申请权限
+ * - 订阅 hrv 事件流，每个 HRV 样本触发一次 updateHRVFromAppleWatch 上报后端
+ * - 后端响应通过 callbacks.onMetrics 回调给页面（用于 UI 更新 BPM 调整等）
+ *
+ * @param {string} sessionId - 后端返回的疗愈会话 ID
+ * @param {Object} [callbacks]
+ * @param {Function} [callbacks.onMetrics] - ({ hrv, heartRate, timestamp, elapsedSeconds, response }) => void
+ * @param {Function} [callbacks.onError] - (error) => void
+ * @returns {Promise<{ success: boolean, mockMode?: boolean, errorCode?: string, stop?: Function }>}
+ */
+export async function startHRVSession(sessionId, callbacks = {}) {
+  if (activeHRVSession) {
+    console.warn('[music] HRV session already active, stopping previous')
+    await stopHRVSession()
+  }
+
+  // 1. 检查插件可用性（iPad / 模拟器 / 小程序会失败）
+  const availability = await hrv.isAvailable()
+  if (!availability.available) {
+    return { success: false, errorCode: 'HEALTHKIT_UNAVAILABLE' }
+  }
+
+  // 2. 请求授权（已授权时为 no-op，失败也继续：用户可能之前授权过）
+  try {
+    const auth = await hrv.requestAuthorization(['hrv', 'heartRate'])
+    if (!auth.success) {
+      console.warn('[music] HRV authorization issue:', auth.errorCode)
+    }
+  } catch (e) {
+    console.warn('[music] HRV auth error:', e)
+  }
+
+  // 3. 启动监测 + 订阅事件
+  let latestHeartRate = 0
+  const startTime = Date.now()
+
+  const unsubscribe = hrv.onUpdate((event) => {
+    if (event.type === 'heartRate') {
+      latestHeartRate = event.value
+    }
+    if (event.type === 'hrv' && sessionId) {
+      const elapsed = Math.floor((Date.now() - startTime) / 1000)
+      updateHRVFromAppleWatch(sessionId, latestHeartRate, event.value, elapsed)
+        .then((response) => {
+          if (callbacks.onMetrics) {
+            callbacks.onMetrics({
+              hrv: event.value,
+              heartRate: latestHeartRate,
+              timestamp: event.timestamp,
+              elapsedSeconds: elapsed,
+              response
+            })
+          }
+        })
+        .catch((e) => {
+          console.error('[music] updateHRV failed:', e)
+          if (callbacks.onError) callbacks.onError(e)
+        })
+    }
+  })
+
+  const result = hrv.startMonitoring({ types: ['hrv', 'heartRate'] })
+
+  if (!result.success) {
+    unsubscribe()
+    return { success: false, errorCode: result.errorCode }
+  }
+
+  // 4. 组装 stop 函数
+  const stop = async () => {
+    try {
+      unsubscribe()
+    } catch (e) {
+      console.error('[music] unsubscribe error:', e)
+    }
+    try {
+      hrv.stopMonitoring()
+    } catch (e) {
+      console.error('[music] stopMonitoring error:', e)
+    }
+  }
+
+  activeHRVSession = {
+    sessionId,
+    startTime,
+    stop
+  }
+
+  return { success: true, mockMode: result.mockMode, stop }
+}
+
+/**
+ * 停止当前 HRV 监测会话
+ * @returns {Promise<{ success: boolean, sessionId?: string, alreadyStopped?: boolean }>}
+ */
+export async function stopHRVSession() {
+  if (!activeHRVSession) {
+    return { success: true, alreadyStopped: true }
+  }
+
+  const { sessionId, stop } = activeHRVSession
+  activeHRVSession = null
+
+  try {
+    await stop()
+  } catch (e) {
+    console.error('[music] stopHRVSession error:', e)
+  }
+
+  return { success: true, sessionId }
 }
