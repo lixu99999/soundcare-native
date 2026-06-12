@@ -10,24 +10,39 @@
 
 ```
 soundcare-native/
-├── app/                         # 跨平台APP
-│   ├── src/                     # 源代码根目录
+├── app/                                # 跨平台APP
+│   ├── src/                            # 源代码根目录
 │   │   ├── pages/
-│   │   │   ├── index/           # 首页 (共用)
-│   │   │   ├── generate/        # 生成页 (共用)
-│   │   │   ├── player/          # 播放页 (共用)
-│   │   │   ├── profile/         # 个人页 (共用)
-│   │   │   ├── hrv-monitor/     # HRV实时监测 (原生APP专有)
-│   │   │   ├── device-pair/     # 设备配对 (原生APP专有)
-│   │   │   └── healing-report/  # 疗愈报告 (原生APP专有)
-│   │   ├── api/                 # API调用封装 (共用)
-│   │   ├── static/              # 静态资源
+│   │   │   ├── index/                  # 首页 (共用)
+│   │   │   ├── generate/               # 生成页 (共用)
+│   │   │   ├── player/                 # 播放页 (共用)
+│   │   │   ├── profile/                # 个人页 (共用)
+│   │   │   ├── hrv-monitor/            # HRV实时监测 (原生APP专有)
+│   │   │   ├── device-pair/            # 设备配对 (原生APP专有)
+│   │   │   └── healing-report/         # 疗愈报告 (原生APP专有)
+│   │   ├── api/
+│   │   │   ├── music.js                # 音乐 + 后端 API (共用)
+│   │   │   └── hrv-plugin.js           # HRV 原生插件 JS 封装 (仅原生)
+│   │   ├── static/                     # 静态资源
 │   │   ├── App.vue
 │   │   ├── main.js
-│   │   ├── manifest.json
+│   │   ├── manifest.json               # 声明 nativePlugins
 │   │   ├── pages.json
 │   │   └── vite.config.js
+│   ├── nativeplugins/
+│   │   └── SoundCareHRV/               # iOS HRV 原生插件
+│   │       ├── package.json
+│   │       ├── ios/
+│   │       │   ├── HealthKitService.swift
+│   │       │   ├── SoundCareHRVModule.swift
+│   │       │   ├── SoundCareHRVModule.m
+│   │       │   └── Info.plist
+│   │       └── android/                # v2 计划
 │   └── package.json
+├── docs/
+│   ├── HRV原生插件架构.md              # iOS 插件架构设计
+│   └── Mac集成指南.md                  # Mac 端集成步骤
+├── CLAUDE.md                           # Claude Code 上下文
 └── README.md
 ```
 
@@ -77,10 +92,17 @@ npm run build:app-android # 构建Android APK
 
 ## 原生插件集成
 
-uniapp支持通过原生插件调用平台特定API：
+v1 已实现 **iOS Apple Watch HealthKit 实时 HRV 监测**，封装在自研插件 `SoundCareHRV` 中：
 
-- **iOS**：通过`uni.requireNativePlugin('healthkit')`调用HealthKit
-- **Android**：通过`uni.requireNativePlugin('huawei-health')`调用华为Health Kit
+| 平台 | 插件名 | 状态 | 健康 API |
+|------|--------|------|----------|
+| iOS | `SoundCareHRV` | ✅ v1 已完成 | HealthKit（心率 + HRV/SDNN） |
+| Android | - | ⏸ v2 计划 | 华为 Health Kit / 小米 |
+
+- iOS JS 入口：`uni.requireNativePlugin('SoundCareHRV')`
+- JS 封装层：`app/src/api/hrv-plugin.js`
+- Swift 源码：`app/nativeplugins/SoundCareHRV/ios/`
+- 架构设计：`docs/HRV原生插件架构.md`
 
 ## 与微信小程序的关系
 
@@ -91,42 +113,84 @@ uniapp支持通过原生插件调用平台特定API：
 
 代码结构完全一致，原生APP版额外包含HRV相关页面和插件配置。
 
-## HRV数据获取
+## HRV 数据获取（v1：iOS Apple Watch）
 
-### Apple Watch (iOS)
+通过自研原生插件 `SoundCareHRV` 调用 HealthKit。完整 JS 封装见 `app/src/api/hrv-plugin.js`。
+
+### 一次性：检查设备
+
 ```javascript
-// 通过原生插件调用HealthKit
-const healthkit = uni.requireNativePlugin('healthkit')
-healthkit.startHeartRateQuery({
-  success: (res) => {
-    // res.heartRate - 心率 BPM
-    // res.timestamp - 时间戳
-  }
-})
+import hrv from '@/api/hrv-plugin.js'
+
+const { available } = await hrv.isAvailable()
+// iPad / 模拟器 / 小程序端 → { available: false }
 ```
 
-### 华为手表 (Android)
+### 一次性：请求授权
+
 ```javascript
-// 通过原生插件调用华为Health Kit
-const huaweiHealth = uni.requireNativePlugin('huawei-health')
-huaweiHealth.startRRIReading({
-  success: (res) => {
-    // res.heartRate - 心率 BPM
-    // res.rriList - RRI数组，用于精确HRV计算
+const auth = await hrv.requestAuthorization(['hrv', 'heartRate'])
+// 成功：{ success: true, grantedTypes: [...] }
+// 失败：{ success: false, errorCode: 'NOT_AUTHORIZED' | ... }
+```
+
+### 事件流：实时监测
+
+```javascript
+// 订阅事件
+const unsubscribe = hrv.onUpdate((event) => {
+  if (event.type === 'hrv') {
+    // event.value - HRV (ms)，event.timestamp - ms 时间戳，event.source - 'Apple Watch'
+  }
+  if (event.type === 'heartRate') {
+    // event.value - 心率 (BPM)
   }
 })
+
+// 启动监测
+hrv.startMonitoring({ types: ['hrv', 'heartRate'], mockMode: false })
+// mockMode: true 强制使用模拟数据（开发用）
+
+// 5 秒后清理
+setTimeout(() => {
+  unsubscribe()
+  hrv.stopMonitoring()
+}, 5000)
 ```
+
+### 高层封装：自动上报后端
+
+```javascript
+// music.js 提供的 startHRVSession：自动调用 updateHRVFromAppleWatch 上报后端
+import { startHRVSession, stopHRVSession } from '@/api/music.js'
+
+const { stop, success } = await startHRVSession(sessionId, {
+  onMetrics: ({ hrv, heartRate, response }) => {
+    // response 包含后端返回的 BPM 调整建议
+  }
+})
+
+onUnmounted(() => stop())
+```
+
+> Android 端（华为手表 / 小米手环）将在 v2 实现，参考 `docs/HRV原生插件架构.md` 的扩展性设计。
 
 ## 构建要求
 
-- HBuilderX 3.95+
+- HBuilderX 3.95+（alpha 版，支持自定义调试基座）
 - iOS 17.0+ / Android 12.0+
-- Apple Developer Account（HealthKit权限）
-- 华为开发者联盟账号（Health Kit权限）
+- Apple Developer Account（**$99/年**，需在 App ID 勾选 HealthKit 能力）
+- Xcode 15+（Mac 端，编译自定义基座必需）
+- 华为开发者联盟账号（v2 Android 端，Health Kit 权限）
+
+> **iOS 关键步骤**：HBuilderX 制作自定义调试基座时**必须勾选 HealthKit**。详见 [`docs/Mac集成指南.md`](docs/Mac集成指南.md)。
 
 ## 相关文档
 
-- `docs/HRV原生插件架构.md` - iOS HRV 原生插件架构设计
+| 文档 | 内容 |
+|------|------|
+| `docs/HRV原生插件架构.md` | iOS HRV 原生插件架构设计（6 决策 + 通信协议 + 错误码） |
+| `docs/Mac集成指南.md` | Mac 端完整集成步骤（自定义基座 + 真机调试 + 10 项 checklist） |
 
 ## 仓库地址
 
