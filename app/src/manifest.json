@@ -16,6 +16,11 @@
       "delay": 0
     },
     "modules": {},
+    "nativePlugins": {
+      "SoundCareHRV": {
+        "version": "1.0.0"
+      }
+    },
     "distribute": {
       "android": {
         "permissions": [
