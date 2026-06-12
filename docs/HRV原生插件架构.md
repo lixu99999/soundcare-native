@@ -384,7 +384,11 @@ class SoundCareHRVModule: DCUniModule {
         }
 
         monitoringActive = true
-        callback(["success": true, "monitoring": true], false, nil)
+
+        // 关键：keepCallback = true
+        // 后续 HKObserverQuery 触发的 event 会通过 sendEventToJS
+        // 复用同一个 callback 推送给 JS
+        callback(["success": true, "monitoring": true], true, nil)
     }
 
     @objc func stopMonitoring(_ options: Any, callback: @escaping DCUniCallback) {
@@ -415,8 +419,8 @@ class SoundCareHRVModule: DCUniModule {
     }
 
     private func sendEventToJS(_ event: [String: Any]) {
-        // 通过 DCUniModule 的 executor 推送事件到 JS
-        // 第二个参数 keepCallback = false（一次性推送）
+        // 复用 startMonitoring 时以 keepCallback=true 注册的 callback
+        // 将 HealthKit 事件推送给 JS（连续触发同一 callback）
         uniModule.executor.executeUniCallback(event: event)
     }
 }
@@ -736,14 +740,14 @@ Mock 数据生成规则：
 
 ```
 [1] ✅ 写架构设计（本文档）
-[2] 写 Swift 插件代码（HealthKitService + Module + .m 桥接）
-[3] 写 package.json
-[4] 写 Info.plist
-[5] 写 hrv-plugin.js（JS 封装层）
-[6] 改 music.js 接入 hrv-plugin
-[7] 改 device-pair/index.vue 触发授权
-[8] 改 manifest.json 声明插件
-[9] 写 Mac 端集成操作指南
+[2] ✅ 写 Swift 插件代码（HealthKitService + Module + .m 桥接）
+[3] ✅ 写 package.json
+[4] ✅ 写 Info.plist
+[5] ⏸ 写 hrv-plugin.js（JS 封装层）
+[6] ⏸ 改 music.js 接入 hrv-plugin
+[7] ⏸ 改 device-pair/index.vue 触发授权
+[8] ⏸ 改 manifest.json 声明插件
+[9] ⏸ 写 Mac 端集成操作指南
 ```
 
 ### 11.2 Mac 阶段（用户操作）
@@ -782,6 +786,39 @@ docs(mac): add Mac integration step-by-step guide
 | 4 | iPad 支持 | 优雅降级 | `isAvailable` 返回 `false`，HRV 相关页面自动隐藏；其他功能正常 |
 | 5 | 音频会话冲突 | 暂不处理 | HealthKit + AVAudioSession 实测互不干扰，无需额外配置 |
 | 6 | 错误重试 | 不自动重试 | 错误上抛 JS 层（`errorCode`），由调用方决定重试策略 |
+
+---
+
+## 13. 实现说明
+
+2026-06-12 实施时相对本文档的代码示例做了 3 处微调，**已反映在 commit `553f35a`**：
+
+| # | 调整 | 原因 |
+|---|------|------|
+| 1 | `startMonitoring` 初次返回 `keepCallback = true` | 设计文档代码误写为 `false`，会导致后续事件无法复用 callback，事件流断 |
+| 2 | `HealthKitService` / `SoundCareHRVModule` 加 `deinit` 清理 | 释放 observers、mock timer、streamingCallback，避免泄漏 |
+| 3 | `requestAuthorization` / `getLatest` 错误码细分 | 按 `ServiceError` 枚举区分 `HEALTHKIT_UNAVAILABLE` / `QUERY_FAILED` / `NO_DATA_AVAILABLE` / `AUTH_FAILED`，上层更容易处理 |
+
+**Mac 端需要验证 1 个 API**（`SoundCareHRVModule.swift:200`）：
+
+```swift
+uniModule.executor.executeUniCallback(event: event)
+```
+
+如果 HBuilderX 自定义基座带的 DCUniPlugin 框架此 API 不匹配，备选方案：
+- `self.executeUniCallback(event: event, keepAlive: true)`
+- `self.invoke(methodName: "onHRVUpdate", params: event)`
+
+**实际代码行数**：
+
+| 文件 | 行数 |
+|------|------|
+| `HealthKitService.swift` | 232 |
+| `SoundCareHRVModule.swift` | 220 |
+| `SoundCareHRVModule.m` | 30 |
+| `Info.plist` | 12 |
+| `package.json` | 26 |
+| **合计** | **520** |
 
 ---
 
@@ -833,5 +870,5 @@ uniapp 原生插件必须继承自 `DCUniModule`（DCloud 提供的基类），�
 
 ---
 
-**当前状态**：设计已确认（2026-06-11），待开始实施。
-**下一步**：写 Swift 插件代码（HealthKitService + Module + .m 桥接），然后写 JS 封装层。
+**当前状态**：Swift 代码已完成（commit `553f35a`），待 JS 封装层 + manifest.json 接入。
+**下一步**：写 `hrv-plugin.js` + 改 `music.js` + 改 `device-pair` + 改 `manifest.json`，最后写 Mac 集成清单。
