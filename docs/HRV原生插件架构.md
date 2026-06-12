@@ -743,8 +743,8 @@ Mock 数据生成规则：
 [2] ✅ 写 Swift 插件代码（HealthKitService + Module + .m 桥接）
 [3] ✅ 写 package.json
 [4] ✅ 写 Info.plist
-[5] ⏸ 写 hrv-plugin.js（JS 封装层）
-[6] ⏸ 改 music.js 接入 hrv-plugin
+[5] ✅ 写 hrv-plugin.js（JS 封装层）
+[6] ✅ 改 music.js 接入 hrv-plugin（新增 startHRVSession / stopHRVSession）
 [7] ⏸ 改 device-pair/index.vue 触发授权
 [8] ⏸ 改 manifest.json 声明插件
 [9] ⏸ 写 Mac 端集成操作指南
@@ -811,14 +811,15 @@ uniModule.executor.executeUniCallback(event: event)
 
 **实际代码行数**：
 
-| 文件 | 行数 |
-|------|------|
-| `HealthKitService.swift` | 232 |
-| `SoundCareHRVModule.swift` | 220 |
-| `SoundCareHRVModule.m` | 30 |
-| `Info.plist` | 12 |
-| `package.json` | 26 |
-| **合计** | **520** |
+| 文件 | 行数 | commit |
+|------|------|--------|
+| `HealthKitService.swift` | 232 | `553f35a` |
+| `SoundCareHRVModule.swift` | 220 | `553f35a` |
+| `SoundCareHRVModule.m` | 30 | `553f35a` |
+| `Info.plist` | 12 | `553f35a` |
+| `package.json` | 26 | `553f35a` |
+| `hrv-plugin.js` | 288 | `ad0a353` |
+| `music.js` (新增部分) | +119 | `ad0a353` |
 
 ---
 
@@ -870,5 +871,5 @@ uniapp 原生插件必须继承自 `DCUniModule`（DCloud 提供的基类），�
 
 ---
 
-**当前状态**：Swift 代码已完成（commit `553f35a`），待 JS 封装层 + manifest.json 接入。
-**下一步**：写 `hrv-plugin.js` + 改 `music.js` + 改 `device-pair` + 改 `manifest.json`，最后写 Mac 集成清单。
+**当前状态**：Swift 代码（`553f35a`）+ JS 封装层（`ad0a353`）完成，待 manifest.json + device-pair + Mac 集成清单。
+**下一步**：改 `manifest.json` 声明插件 + 改 `device-pair/index.vue` 触发授权 + 写 Mac 集成操作清单。
