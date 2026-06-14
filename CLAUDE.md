@@ -12,11 +12,14 @@ iOS HRV 原生插件开发。
 - ✅ JS 封装层（commit `ad0a353`，hrv-plugin.js + music.js startHRVSession）
 - ✅ 接入层（commit `3128f44`，manifest.json + device-pair + Mac集成指南.md）
 - ✅ hrv-monitor 接入 hrv-plugin（commit `24f6be1`，替换空 stub）
-- ✅ v1.1-mock 方案设计（用户已确认沿用 soundcare-app HRV mock 设计）：`docs/v1.1_JS层Mock兜底方案.md`
-- ⏸ v1.1-mock 实施：hrv-plugin.js + hrv-monitor + music.js（Windows 端可写，5 个 commit）
-- ⏸ **Mac 端待用户执行**：`docs/Mac集成指南.md` Phase 1（mock 验证）+ Phase 2（付费后真 HealthKit）
+- ✅ v1.1-mock 方案设计 + 实施（5 个 commit）：`docs/v1.1_JS层Mock兜底方案.md`
+  - `eee1eba` hrv-plugin.js JS 层 mock 兜底（30 秒 RMSSD 窗口 + 5 级状态）
+  - `3e35de1` hrv-monitor 5 级状态 + 初始值对齐
+  - `30c787a` music.js startHRVSession 按数据源分支 device_type
+  - `9daa822` Mac集成指南 §4.0 拆为 Phase 1（免费+mock）+ Phase 2（付费+HealthKit）
+- ⏸ **Mac 端待用户执行**：Phase 1（标准基座 + mock 验证）或 Phase 2（付费 + 真 HealthKit）
 - ⏸ v1.2：player 接入 startHRVSession（963 行，重构风险高）
-- ⏸ v2.0：付费 Apple Developer + 自定义基座 + 真 HealthKit
+- ⏸ v2.0：付费 Apple Developer + 自定义基座 + 真 HealthKit（可选升级）
 
 ## 必读
 
@@ -27,9 +30,24 @@ iOS HRV 原生插件开发。
 
 ## Mac 集成待办
 
+### Phase 1（推荐入口，免费）
+
+- [ ] HBuilderX 打开 app/ 项目
+- [ ] 用自己的免费 Apple ID 登录 Xcode
+- [ ] iPhone 连 Mac → 信任设备
+- [ ] HBuilderX → 运行 → 运行到 iPhone 真机（**标准基座**）
+- [ ] 验证首页 / 生成 / 播放 / 个人页
+- [ ] 进入"设备配对" → 测试数据流（5 秒内应看到 Mock 事件）
+- [ ] 进入"HRV 监测" → 启动 → 看到 Mock 数据流
+- [ ] 停止监测
+
+### Phase 2（付费后升级）
+
+- [ ] Apple Developer 付费账号激活
 - [ ] HBuilderX 制作自定义调试基座（勾选 HealthKit）
-- [ ] 真机运行测试
-- [ ] 调试授权 / 数据流
+- [ ] 真机运行 + Apple Watch 配对
+- [ ] 调试真实 HealthKit 数据流
+- [ ] 验证后端收到 `device_type='apple_watch'`
 
 ## 仓库
 
