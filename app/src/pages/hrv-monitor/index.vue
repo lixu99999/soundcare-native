@@ -84,11 +84,11 @@ export default {
       unavailableReason: '',
       monitoring: false,
       deviceType: 'apple',
-      heartRate: 0,
-      hrvValue: 0,
+      heartRate: 70,        // 初始 70 BPM（mock 默认值，对齐小程序）
+      hrvValue: 40,         // 初始 40ms（mock 默认值，对齐小程序）
       hrvStatus: 'normal',
       trendDirection: 'stable',
-      hrvHistory: [],
+      hrvHistory: [40],     // 初始历史含一个 40ms 样本（避免空数组）
       bpmDelta: 0,
       dataSource: '',  // 'Apple Watch' / 'Mock' / 等
       unsubscribe: null,
@@ -116,6 +116,7 @@ export default {
         relaxed: '深度放松',
         normal: '正常放松',
         stressed: '中度压力',
+        high: '高压力',
         anxious: '焦虑状态'
       }
       return statusMap[this.hrvStatus] || '未知'
@@ -228,25 +229,29 @@ export default {
     },
 
     /**
-     * HRV 状态分级（与后端约定保持一致）
-     *   >80ms  → relaxed
-     *   50-80  → normal
-     *   30-50  → stressed
-     *   <30    → anxious
+     * HRV 状态分级（5 级，对齐 soundcare-app HRVCalculator）
+     *   >80ms   → relaxed     (深度放松)
+     *   50-80   → normal      (正常放松)
+     *   30-50   → stressed    (中度压力)
+     *   15-30   → high        (高压力)
+     *   <15     → anxious     (焦虑状态)
      */
     classifyHRV(value) {
       if (value >= 80) return 'relaxed'
       if (value >= 50) return 'normal'
       if (value >= 30) return 'stressed'
+      if (value >= 15) return 'high'
       return 'anxious'
     },
 
     /**
      * 本地 BPM 建议（前端规则，最终由后端根据 session 上下文决定）
+     * 5 级对齐：<15 焦虑 -10 / 15-30 高压力 -8 / 30-50 中度 -4 / 50-80 保持 / >80 +2
      */
     suggestBpmDelta(hrv) {
-      if (hrv < 30) return -8   // 焦虑：大幅降速
-      if (hrv < 50) return -4   // 压力：适度降速
+      if (hrv < 15) return -10  // 焦虑：大幅降速
+      if (hrv < 30) return -8   // 高压力：显著降速
+      if (hrv < 50) return -4   // 中度压力：适度降速
       if (hrv > 80) return +2   // 深度放松：略提神或保持
       return 0
     },
@@ -360,6 +365,7 @@ export default {
 .status.relaxed { color: #4ade80; }
 .status.normal { color: #60a5fa; }
 .status.stressed { color: #f59e0b; }
+.status.high { color: #fb923c; }
 .status.anxious { color: #ef4444; }
 .trend.up { color: #4ade80; }
 .trend.down { color: #ef4444; }
