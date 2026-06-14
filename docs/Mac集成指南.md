@@ -61,39 +61,69 @@ npm install
 
 **为什么需要自定义基座**：uniapp 官方基座不包含 HealthKit framework。要调用 HealthKit API，必须自己打包一个带 HealthKit 的基座。
 
-### 4.0 账号要求（强制）
+### 4.0 账号与阶段说明
 
-**HealthKit 不支持免费 Apple ID（Personal Team）。** 这一点是 Apple 政策，不是配置问题。
+v1.1 起，HRV 插件支持**两阶段策略**，先免费跑通 UI 流程，付费后再接真 HealthKit。
 
-| 账号类型 | 证书 Keychain 标记 | 能否勾选 HealthKit | 能否做自定义基座 |
-|----------|--------------------|--------------------|------------------|
-| **付费开发者**（$99/年） | ✅ Trusted | ✅ | ✅ |
-| 免费 Apple ID（Personal Team） | ⚠️ Untrusted | ❌ 灰色 | ❌ |
+#### Phase 1（推荐入口）：免费 Apple ID + 标准基座 + JS Mock
 
-#### 为什么免费账号不行
+| 项 | 说明 |
+|----|------|
+| 账号 | 免费 Apple ID（Personal Team）即可 |
+| 基座 | HBuilderX **标准基座**（无需自定义） |
+| HRV 数据 | **JS 层 mock**（`hrv-plugin.js` 内部 `startJsMock`，与 soundcare-app 同样算法） |
+| 限制 | 真实 Apple Watch 数据**不可用**，仅 UI 流程演示 |
+| 适合 | 验证 iOS 基础界面 / 播放页 / 设备配对页 / HRV 监测页的完整流程 |
 
-Personal Team 的证书是 Xcode 在本机临时自签的，用「Apple Development CA」做根。这个 CA 没在 Apple 全球信任列表里：
-- Keychain 标记 untrusted
-- **HealthKit entitlement 无法添加**（Apple 后台会拒绝）
-- 自定义基座制作时直接失败
+**优势**：
+- ✅ 无需付费
+- ✅ Mac 端工作量最小（**不需要**做自定义基座）
+- ✅ Mac 集成步骤 4.1-4.3 可全部跳过
+- ✅ 业务代码（hrv-monitor / device-pair）已经为 5 级状态对齐
 
-#### 三个解决方案
+**Phase 1 的 Mac 端工作**：
+1. HBuilderX 打开 `soundcare-native/app` 项目
+2. 用自己的 Apple ID 登录（Xcode → Settings → Accounts）
+3. iPhone 连 Mac → 信任设备
+4. HBuilderX → 运行 → 运行到 iPhone 真机（标准基座）
+5. 进入 APP 验证：首页 / 生成 / 播放 / 个人 / 设备配对 / HRV 监测
+6. 在「设备配对」页点「测试数据流（5 秒）」，应看到 Mock 事件
 
-| 方案 | 成本 | 适合 |
-|------|------|------|
-| **A. 升级付费开发者**（推荐） | $99/年（约 ¥720） | 长期做 iOS 开发 |
-| **B. 借朋友的付费账号** | 0 | 短期测试 1-2 周（注意：设备会注册到对方 team） |
-| **C. 跳过 iOS，先做小程序** | 0 | 仅验证后端逻辑和音乐功能，HRV 暂缓 |
+#### Phase 2（升级后）：付费 Apple ID + 自定义基座 + 真 HealthKit
 
-#### 升级步骤（方案 A）
+| 项 | 说明 |
+|----|------|
+| 账号 | 付费 Apple Developer（$99/年） |
+| 基座 | HBuilderX **自定义调试基座**（带 HealthKit） |
+| HRV 数据 | 真 Apple Watch HealthKit 数据流 |
+| 需要 | 配对 Apple Watch + iPhone |
+| 适合 | 真实用户体验测试 + 后期 App Store 上架准备 |
 
-1. https://developer.apple.com/register/ 注册
-2. 选 Individual（个人）或 Organization（企业）
-3. 信用卡支付 $99
-4. 等待 24-48 小时（Apple 人工审核激活）
-5. 重新走 §4.1 准备证书
+**Phase 2 何时启动**：
+- 上线前 3-6 个月启动合规（算法备案 + APP 备案）
+- 拿到付费账号后 24-48 小时激活
+- 然后走下面的 §4.1-4.3
 
-### 4.1 准备证书（首次）
+#### 决策表
+
+| 你的情况 | 推荐阶段 |
+|----------|----------|
+| 想先看 iOS 跑起来 | **Phase 1**（免费，先跑通） |
+| 已有付费账号 / 准备上线 | Phase 2（直接做自定义基座） |
+| 团队多人 + 长期项目 | Phase 2（一次到位） |
+| 时间紧 + 验证后端 | Phase 1（最快路径） |
+
+### 4.1 准备证书（Phase 2 首次）
+
+> Phase 1 用标准基座 + 免费 Apple ID，**不需要**走本节。直接跳到 §5。
+>
+> 付费账号激活后再回来做这一步。
+
+1. 打开 Xcode → Settings → Accounts → 添加你的付费 Apple ID
+2. 下载 "iOS Development" 证书到 Keychain
+3. 创建一个 development provisioning profile：
+   - Xcode → Settings → Accounts → 选择 Apple ID → Manage Certificates
+   - 或登录 https://developer.apple.com → Certificates, Identifiers & Profiles
 
 1. 打开 Xcode → Settings → Accounts → 添加你的 Apple ID
 2. 下载 "iOS Development" 证书到 Keychain
@@ -101,7 +131,7 @@ Personal Team 的证书是 Xcode 在本机临时自签的，用「Apple Developm
    - Xcode → Settings → Accounts → 选择 Apple ID → Manage Certificates
    - 或登录 https://developer.apple.com → Certificates, Identifiers & Profiles
 
-### 4.2 创建 App ID
+### 4.2 创建 App ID（Phase 2）
 
 1. 登录 https://developer.apple.com
 2. Certificates, Identifiers & Profiles → Identifiers → "+"
@@ -113,7 +143,7 @@ Personal Team 的证书是 Xcode 在本机临时自签的，用「Apple Developm
 
 > **重要**：如果用通配符 Bundle ID（`com.soundcare.*`），无法勾选 HealthKit。必须用显式 ID。
 
-### 4.3 在 HBuilderX 制作基座
+### 4.3 在 HBuilderX 制作基座（Phase 2）
 
 1. HBuilderX 菜单：运行 → 运行到手机或模拟器 → 制作自定义调试基座
 2. 在弹出的"自定义基座"对话框中：
@@ -254,11 +284,11 @@ self.invoke(methodName: "onHRVUpdate", params: event)
 
 ### Q0: 证书在 Keychain 显示 untrusted，能用吗？
 
-**答**：能用，但 **不能勾选 HealthKit**。
+**答**：Phase 1 直接用，能跑通 UI（标准基座 + JS mock）。
 
-免费 Apple ID（Personal Team）下，Xcode 会在本机自签证书，Keychain 标记 untrusted 是正常现象。但 Apple 政策禁止 Personal Team 使用 HealthKit entitlement，自定义基座制作时会被拒绝。
+免费 Apple ID（Personal Team）下，Xcode 会在本机自签证书，Keychain 标记 untrusted 是正常现象。Apple 政策禁止 Personal Team 使用 HealthKit entitlement，所以**真 HealthKit 数据**不可用——但 v1.1 起 `hrv-plugin.js` 内置 JS mock 兜底，UI 流程完全跑得通。
 
-**解决**：升级付费开发者账号（$99/年），详见 §4.0。
+**解决（Phase 2）**：升级付费开发者账号（$99/年），详见 §4.0。
 
 ### Q1: HBuilderX 找不到 SoundCareHRV 插件
 
@@ -308,22 +338,42 @@ self.invoke(methodName: "onHRVUpdate", params: event)
 
 ## 10. 完整流程 checklist
 
+### Phase 1（免费 + 标准基座 + JS Mock）
+
 按顺序勾选：
 
 - [ ] Mac 已安装 Xcode 26.3 + HBuilderX 3.95+
-- [ ] **Apple Developer 付费账号**已激活（$99/年，免费账号无法测 HealthKit）
 - [ ] git clone + npm install 完成
 - [ ] HBuilderX 打开 app/ 目录成功
-- [ ] Apple Developer 账号已登录 Xcode
-- [ ] App ID `com.soundcare.app` 已创建并勾选 HealthKit
-- [ ] 自定义调试基座已制作（带 HealthKit）
-- [ ] iPhone 真机已连接，自定义基座已安装
-- [ ] APP 启动，能进入"设备配对"页
-- [ ] Apple Watch 配对 → 授权弹窗 → 已连接
-- [ ] "测试数据流"按钮能在 5 秒内收到事件
-- [ ] 后端能收到 HRV 上报（如已联调）
+- [ ] 免费 Apple ID 已登录 Xcode
+- [ ] iPhone 真机已连接并信任
+- [ ] HBuilderX → 运行到 iPhone 真机（**标准基座**）
+- [ ] APP 启动，能进入"首页 / 生成 / 播放 / 个人"
+- [ ] 进入"设备配对"页 → 触发授权（mock 模式不弹系统框）
+- [ ] "测试数据流（5 秒）"按钮能在 5 秒内收到 Mock 事件
+- [ ] 进入"HRV 监测"页 → 启动 → 看到 Mock 数据流
+- [ ] 停止监测 → 数据流停止
 
-全部勾完 = v1 iOS 端集成成功 🎉
+全部勾完 = v1.1 Phase 1 验证成功 🎉
+
+### Phase 2（付费 + 自定义基座 + 真 HealthKit）
+
+- [ ] 已升级付费 Apple Developer（$99/年）
+- [ ] 准备证书（§4.1）
+- [ ] 创建 App ID 并勾选 HealthKit（§4.2）
+- [ ] 制作自定义调试基座（§4.3）
+- [ ] iPhone 真机已连接，自定义基座已安装
+- [ ] Apple Watch 已配对 iPhone
+- [ ] APP 启动 → "设备配对"页 → 系统弹授权框 → 允许
+- [ ] "测试数据流"按钮能在 5 秒内收到 **Apple Watch 真实数据**
+- [ ] 进入"HRV 监测"页 → 看到 source='Apple Watch'
+- [ ] 后端能收到 `device_type='apple_watch'` 的 HRV 上报
+
+全部勾完 = v1.1 Phase 2 验证成功 🎉
+
+### 一句话选阶段
+
+> 没付费 → Phase 1（5 分钟跑通） / 已付费 → Phase 2（完整真 HealthKit）
 
 ---
 
