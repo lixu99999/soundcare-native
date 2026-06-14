@@ -6,7 +6,7 @@ iOS 原生插件（`SoundCareHRV`）已在 Windows 端写完。Mac 端负责 Xco
 > - macOS Sequoia
 > - Xcode 26.3（Xcode for Sequoia 最高版本）
 > - HBuilderX 3.95+（alpha 版即可，需支持自定义基座）
-> - Apple Developer 账号（个人/企业均可，$99/年）
+> - **Apple Developer 付费账号（$99/年，强制要求）**——HealthKit 不支持免费 Personal Team，详见 [§4.0 账号要求](#40-账号要求强制)
 > - iPhone 真机（iOS 17+）+ Apple Watch（Series 4+，watchOS 10+）
 
 ---
@@ -60,6 +60,38 @@ npm install
 ## 4. 制作自定义调试基座（关键步骤）
 
 **为什么需要自定义基座**：uniapp 官方基座不包含 HealthKit framework。要调用 HealthKit API，必须自己打包一个带 HealthKit 的基座。
+
+### 4.0 账号要求（强制）
+
+**HealthKit 不支持免费 Apple ID（Personal Team）。** 这一点是 Apple 政策，不是配置问题。
+
+| 账号类型 | 证书 Keychain 标记 | 能否勾选 HealthKit | 能否做自定义基座 |
+|----------|--------------------|--------------------|------------------|
+| **付费开发者**（$99/年） | ✅ Trusted | ✅ | ✅ |
+| 免费 Apple ID（Personal Team） | ⚠️ Untrusted | ❌ 灰色 | ❌ |
+
+#### 为什么免费账号不行
+
+Personal Team 的证书是 Xcode 在本机临时自签的，用「Apple Development CA」做根。这个 CA 没在 Apple 全球信任列表里：
+- Keychain 标记 untrusted
+- **HealthKit entitlement 无法添加**（Apple 后台会拒绝）
+- 自定义基座制作时直接失败
+
+#### 三个解决方案
+
+| 方案 | 成本 | 适合 |
+|------|------|------|
+| **A. 升级付费开发者**（推荐） | $99/年（约 ¥720） | 长期做 iOS 开发 |
+| **B. 借朋友的付费账号** | 0 | 短期测试 1-2 周（注意：设备会注册到对方 team） |
+| **C. 跳过 iOS，先做小程序** | 0 | 仅验证后端逻辑和音乐功能，HRV 暂缓 |
+
+#### 升级步骤（方案 A）
+
+1. https://developer.apple.com/register/ 注册
+2. 选 Individual（个人）或 Organization（企业）
+3. 信用卡支付 $99
+4. 等待 24-48 小时（Apple 人工审核激活）
+5. 重新走 §4.1 准备证书
 
 ### 4.1 准备证书（首次）
 
@@ -220,6 +252,14 @@ self.invoke(methodName: "onHRVUpdate", params: event)
 
 ## 9. 常见问题
 
+### Q0: 证书在 Keychain 显示 untrusted，能用吗？
+
+**答**：能用，但 **不能勾选 HealthKit**。
+
+免费 Apple ID（Personal Team）下，Xcode 会在本机自签证书，Keychain 标记 untrusted 是正常现象。但 Apple 政策禁止 Personal Team 使用 HealthKit entitlement，自定义基座制作时会被拒绝。
+
+**解决**：升级付费开发者账号（$99/年），详见 §4.0。
+
 ### Q1: HBuilderX 找不到 SoundCareHRV 插件
 
 **症状**：JS 端 `uni.requireNativePlugin('SoundCareHRV')` 返回 null
@@ -271,6 +311,7 @@ self.invoke(methodName: "onHRVUpdate", params: event)
 按顺序勾选：
 
 - [ ] Mac 已安装 Xcode 26.3 + HBuilderX 3.95+
+- [ ] **Apple Developer 付费账号**已激活（$99/年，免费账号无法测 HealthKit）
 - [ ] git clone + npm install 完成
 - [ ] HBuilderX 打开 app/ 目录成功
 - [ ] Apple Developer 账号已登录 Xcode
