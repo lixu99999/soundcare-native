@@ -12,9 +12,9 @@ iOS HRV 原生插件开发。
 - ✅ JS 封装层（commit `ad0a353`，hrv-plugin.js + music.js startHRVSession）
 - ✅ 接入层（commit `3128f44`，manifest.json + device-pair + Mac集成指南.md）
 - ✅ hrv-monitor 接入 hrv-plugin（commit `24f6be1`，替换空 stub）
-- ✅ v1.1-mock 方案设计（待 Mac 端评审）：`docs/v1.1_JS层Mock兜底方案.md`
-- ⏸ **Mac 端待用户执行**：`docs/Mac集成指南.md` 完整流程
-- ⏸ v1.1-mock 实施（Mac 评审通过后）：hrv-plugin.js JS 层 mock 兜底，零业务代码改动
+- ✅ v1.1-mock 方案设计（用户已确认沿用 soundcare-app HRV mock 设计）：`docs/v1.1_JS层Mock兜底方案.md`
+- ⏸ v1.1-mock 实施：hrv-plugin.js + hrv-monitor + music.js（Windows 端可写，5 个 commit）
+- ⏸ **Mac 端待用户执行**：`docs/Mac集成指南.md` Phase 1（mock 验证）+ Phase 2（付费后真 HealthKit）
 - ⏸ v1.2：player 接入 startHRVSession（963 行，重构风险高）
 - ⏸ v2.0：付费 Apple Developer + 自定义基座 + 真 HealthKit
 
