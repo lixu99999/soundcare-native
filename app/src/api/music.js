@@ -240,11 +240,14 @@ export async function startHRVSession(sessionId, callbacks = {}) {
     await stopHRVSession()
   }
 
-  // 1. 检查插件可用性（iPad / 模拟器 / 小程序会失败）
+  // 1. 检查插件可用性
+  //    v1.1-mock：标准基座下 isAvailable 返回 { available: true, mockFallback: true }
+  //    真 iPad / 模拟器 / 小程序才会返回 available: false
   const availability = await hrv.isAvailable()
   if (!availability.available) {
     return { success: false, errorCode: 'HEALTHKIT_UNAVAILABLE' }
   }
+  const isMock = !!availability.mockFallback
 
   // 2. 请求授权（已授权时为 no-op，失败也继续：用户可能之前授权过）
   try {
@@ -266,7 +269,19 @@ export async function startHRVSession(sessionId, callbacks = {}) {
     }
     if (event.type === 'hrv' && sessionId) {
       const elapsed = Math.floor((Date.now() - startTime) / 1000)
-      updateHRVFromAppleWatch(sessionId, latestHeartRate, event.value, elapsed)
+      // v1.1-mock：根据数据源决定 device_type
+      // 真 HealthKit → 'apple_watch'；mock 兜底 → 'simulated'（对齐小程序）
+      const eventIsMock = event.source === 'Mock' || hrv.isMockFallback()
+      const reportPromise = eventIsMock
+        ? updateHRV(sessionId, {
+            rmssd: event.value,
+            heart_rate: latestHeartRate,
+            elapsed_seconds: elapsed,
+            device_type: 'simulated'
+          })
+        : updateHRVFromAppleWatch(sessionId, latestHeartRate, event.value, elapsed)
+
+      reportPromise
         .then((response) => {
           if (callbacks.onMetrics) {
             callbacks.onMetrics({
