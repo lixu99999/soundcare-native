@@ -363,16 +363,62 @@ v1.1 起，HRV 插件支持**三阶段策略**，先在模拟器 5 分钟跑通�
 
 ## 6. 验证 HRV 插件工作
 
-### 6.1 模拟器验证（仅功能验证）
+### 6.0 后端依赖一览
 
-> **2026-06-15 注意**：DCloud 标准基座在 iOS **模拟器**上**仍可用**（苹果只限制真机的企业证书使用）。所以 Mac 端不想做自定义基座时，可以先用模拟器 + 标准基座跑 UI 流程，验证首页 / 生成 / 播放 / 个人 / 设备配对 / HRV 监测页能正常跳转。**但 HRV 数据流无法在模拟器上验证**（无 HealthKit）。
+> **2026-06-15 重要**：和微信小程序不一样，**native APP 的 HRV 数据流测试不需要后端**。HRV mock 是 `hrv-plugin.js` 内部的纯 JS setInterval，不走网络。所以 Mac 端 Phase 1A 验证可以**完全离线**进行，不用启 Python 后端。
 
-模拟器**没有真正的 HealthKit 数据**，但可以测试：
-- isAvailable 返回 false（因为 iPad/模拟器不支持）
-- UI 优雅降级（"需要 iPhone + Apple Watch"）
-- 错误处理
+| 流程 / 页面 | 是否需要后端 | 说明 |
+|-------------|--------------|------|
+| HRV 监测页（hrv-monitor） | **❌ 不需要** | 纯前端 mock，5 秒一帧推送 |
+| 设备配对页（device-pair） | **❌ 不需要** | 测试数据流按钮 → 5 秒内本地 mock 事件 |
+| 首页（index） | ✅ 需要 | 调 `/music/sessions/{user_id}` 等接口 |
+| 生成页（generate） | ✅ 需要 | 调 `/music/generate` |
+| AI 生成页（ai-generate） | ✅ 需要 | 调 `/music/llm-optimize` |
+| 播放页（player） | ✅ 需要 | 调 `/music/generate` + `/session/.../hrv-update` |
+| 个人页（profile） | ✅ 需要 | 调 `/user/{user_id}/stats` 等接口 |
 
-### 6.2 真机验证（完整功能）
+**Mac 端推荐测试策略**：
+- **Phase 1A 验证**：**完全不启后端**，只测 HRV 监测页 + 设备配对页的 mock 数据流是否正常
+- **Phase 1B 验证**：同上
+- **端到端联调**：再启后端（`uvicorn app.main:app --reload --port 8000`），跑完整首页 → 生成 → 播放流程
+
+> **对比微信小程序**：小程序**所有**流程都要后端（没有 native mock 能力），所以小程序测试 = 必启后端。native APP 在这一点上更友好。
+
+### 6.1 模拟器 + 标准基座 + JS Mock（Phase 1A 推荐路径）
+
+> **2026-06-15 路径修正**：DCloud 标准基座在 iOS 模拟器上**仍可用**（§3.6），所以 Phase 1A 验证**零证书、零后端、5 分钟**。
+
+模拟器 + 标准基座的运行时行为：
+- `hrv-plugin.js` 调 `uni.requireNativePlugin('SoundCareHRV')` → 标准基座没注册该插件 → `plugin === null`
+- `isAvailable()` 走 fallback 分支 → 返回 `{ available: true, mockFallback: true }`（**不**返回 false！）
+- hrv-monitor 页 `available` 字段为 `true` → 渲染正常监测卡片（**不**显示"设备不支持"）
+- 点击"开始监测" → `startMonitoring()` 走 fallback → 触发 `startJsMock()` → 5 秒一帧 mock 数据
+- 曲线、状态、趋势、BPM 建议全部正常更新
+
+**所以 Phase 1A 模拟器验证能跑通的内容**：
+- ✅ UI 流程（首页 / 生成 / 播放 / 个人 / 设备配对 / HRV 监测 页跳转）
+- ✅ HRV mock 数据流（曲线、状态、趋势）
+- ✅ 设备配对页"测试数据流（5 秒）"按钮
+
+**模拟器跑不通**：
+- ❌ 真 HealthKit 数据（无硬件）
+- ❌ 真传感器（陀螺仪、加速度）
+- ❌ 任何依赖 Apple Watch 的功能
+
+### 6.2 真机 + 自定义基座（Phase 1B）
+
+1. Phase 1A 跑通后再做这一步
+2. iPhone 连 Mac → 信任设备
+3. HBuilderX → 运行 → 运行到 iPhone 真机（**自定义基座**）
+4. APP 启动后进入 APP
+5. 进入"设备配对"页 → 触发授权（mock 模式不弹系统框）
+6. 点击"测试数据流（5 秒）"按钮：
+   - 应在 5 秒内显示 "HRV 52.3ms (Mock)" 或 "HR 70 BPM (Mock)"
+   - 如果没显示，参考 §8 调试
+7. 进入"HRV 监测"页 → 启动 → 看到 Mock 数据流（曲线、状态、趋势、BPM 建议）
+8. 停止监测
+
+### 6.3 真机 + 自定义基座 + 真 HealthKit（Phase 2）
 
 1. 佩戴 Apple Watch（确保已与 iPhone 配对）
 2. 在 Watch 上打开 "Heart Rate" 应用，让它测一次心率（确保 HealthKit 里有数据）
@@ -380,9 +426,9 @@ v1.1 起，HRV 插件支持**三阶段策略**，先在模拟器 5 分钟跑通�
 4. 允许授权后，页面应显示 "已连接"
 5. 点击 "测试数据流（5 秒）" 按钮：
    - 应在 5 秒内显示 "HRV 52.3ms (Apple Watch)" 或 "HR 68 BPM (Apple Watch)"
-   - 如果没显示，参考下面的调试
+   - 如果没显示，参考 §8 调试
 
-### 6.3 手动添加 HealthKit 数据（如果 Apple Watch 没数据）
+### 6.4 手动添加 HealthKit 数据（如果 Apple Watch 没数据）
 
 1. iPhone 打开 Health App
 2. 摘要 → 心脏 → 添加数据
@@ -394,6 +440,8 @@ v1.1 起，HRV 插件支持**三阶段策略**，先在模拟器 5 分钟跑通�
 
 ## 7. 验证后端联动
 
+> **2026-06-15 重要**：Phase 1A/1B 的 HRV 数据流测试**不需要**后端（详见 §6.0）。本章只在你需要端到端验证播放页 / 生成页 / 首页 时才需要。
+
 ### 7.1 配置 API 地址
 
 1. 编辑 `app/src/config.js`
@@ -401,6 +449,8 @@ v1.1 起，HRV 插件支持**三阶段策略**，先在模拟器 5 分钟跑通�
    - Mac 本地后端：`http://localhost:8000`（或 `http://127.0.0.1:8000`）
    - 远程后端：`https://api.collegegenerator.cn/api/v1`
 3. 改完重新运行 APP
+
+> **Phase 1A 提示**：如果只想验 HRV mock 数据流，**不需要改 config.js**，保持默认 `http://localhost:8000` 即可（即使后端没启，HRV 流程也不调用）。
 
 ### 7.2 触发 HRV 上报
 
@@ -514,24 +564,26 @@ self.invoke(methodName: "onHRVUpdate", params: event)
 
 ### Q5: 模拟器能跑吗？
 
-**功能限制**：
+**功能限制**（Phase 2 自定义基座带 HealthKit 场景）：
 - isAvailable: false（模拟器无 HealthKit）
 - 授权弹窗：✅ 会出现
-- 数据流：❌ 无数据（除非手动添加，参考 6.3）
+- 数据流：❌ 无数据（除非手动添加，参考 6.4）
 
-**建议**：模拟器只用来跑 UI，数据流验证必须真机。
+**建议**：Phase 2 真机验证前，模拟器只用来跑 UI。
 
-> **2026-06-15 好消息**：模拟器**仍可用 DCloud 标准基座**（苹果只限制真机的企业证书使用，§3.6）。所以 Mac 端验证 UI 流程**不需要**做自定义基座，直接「运行 → iOS 模拟器」即可，5 分钟跑通。
+> **2026-06-15 好消息（Phase 1A 路径）**：模拟器 + 标准基座 + JS mock **能跑通 HRV 数据流**（`plugin==null` 触发 mock，§6.1），5 分钟跑通全部 UI 流程，**不需要**做自定义基座，**不需要**后端。详见 §10 Phase 1A。
 
 ---
 
 ## 10. 完整流程 checklist
 
 > **2026-06-15 重要**：DCloud 公共签名停用（§3.6），iPhone 真机路径必须自带 Apple ID 证书 + 自定义基座。**但模拟器路径（Phase 1A）零证书、5 分钟跑通**，可作为第一轮验证。
+>
+> **后端依赖**：Phase 1A/1B 的 HRV 数据流测试**不需要** Python 后端（§6.0）；播放页 / 生成页 / 首页 / 个人页 才需要。
 
-### Phase 1A（模拟器 + 标准基座 + JS Mock，5 分钟）
+### Phase 1A（模拟器 + 标准基座 + JS Mock，5 分钟，**不需要后端**）
 
-> **最推荐入口**：零 Apple ID / 零证书 / 零基座，直接用 DCloud 标准基座在 Mac iOS 模拟器上跑。HRV mock 数据流也能跑通（`plugin==null` 触发 JS mock 兜底，§4.0）。
+> **最推荐入口**：零 Apple ID / 零证书 / 零基座 / 零后端，直接用 DCloud 标准基座在 Mac iOS 模拟器上跑。HRV mock 数据流也能跑通（`plugin==null` 触发 JS mock 兜底，§4.0）。
 
 按顺序勾选：
 
@@ -539,15 +591,15 @@ self.invoke(methodName: "onHRVUpdate", params: event)
 - [ ] git clone + npm install 完成
 - [ ] HBuilderX 打开 app/ 目录成功（首次遇到 §3.5 的 4 个坑按对应说明修）
 - [ ] HBuilderX → 运行 → 运行到 **iOS 模拟器**（**标准基座**直接可选）
-- [ ] APP 启动，能进入"首页 / 生成 / 播放 / 个人"
+- [ ] APP 启动，能进入"首页 / 生成 / 播放 / 个人"（这些页可能因后端未启而部分加载失败，**正常**，本阶段不要求）
 - [ ] 进入"设备配对"页 → 触发授权（mock 模式不弹系统框）
 - [ ] "测试数据流（5 秒）"按钮能在 5 秒内收到 Mock 事件
 - [ ] 进入"HRV 监测"页 → 启动 → 看到 Mock 数据流（曲线、状态、趋势、BPM 建议）
 - [ ] 停止监测 → 数据流停止
 
-全部勾完 = v1.1 Phase 1A 验证成功 🎉（**Mac 端零证书工作**）
+全部勾完 = v1.1 Phase 1A 验证成功 🎉（**Mac 端零证书零后端工作**）
 
-### Phase 1B（iPhone 真机 + 自定义基座 + JS Mock，30 分钟）
+### Phase 1B（iPhone 真机 + 自定义基座 + JS Mock，30 分钟，**不需要后端**）
 
 > Phase 1A 跑通后再做。多一步基座打包，验证 iPhone 真机 UX。
 
@@ -557,7 +609,7 @@ self.invoke(methodName: "onHRVUpdate", params: event)
 - [ ] HBuilderX → 制作自定义调试基座（**不**勾选 HealthKit，§4.2）
 - [ ] iPhone 真机已连接并信任
 - [ ] HBuilderX → 运行到 iPhone 真机（**自定义基座**）
-- [ ] APP 启动，能进入"首页 / 生成 / 播放 / 个人"
+- [ ] APP 启动，能进入"首页 / 生成 / 播放 / 个人"（同上，后端相关可能失败）
 - [ ] 进入"设备配对"页 → 触发授权（mock 模式不弹系统框）
 - [ ] "测试数据流（5 秒）"按钮能在 5 秒内收到 Mock 事件
 - [ ] 进入"HRV 监测"页 → 启动 → 看到 Mock 数据流
@@ -565,7 +617,9 @@ self.invoke(methodName: "onHRVUpdate", params: event)
 
 全部勾完 = v1.1 Phase 1B 验证成功 🎉
 
-### Phase 2（付费 + 自定义基座 + 真 HealthKit）
+### Phase 2（付费 + 自定义基座 + 真 HealthKit，**需要后端**）
+
+> Phase 2 验真 HealthKit + 后端联动。`device_type='apple_watch'` 要上报到后端。
 
 - [ ] 已升级付费 Apple Developer（$99/年）
 - [ ] 准备证书（§4.0.5 Phase 2 部分）
@@ -573,16 +627,18 @@ self.invoke(methodName: "onHRVUpdate", params: event)
 - [ ] 制作自定义调试基座（§4.2，勾选 HealthKit）
 - [ ] iPhone 真机已连接，自定义基座已安装
 - [ ] Apple Watch 已配对 iPhone
+- [ ] **启动后端**：`uvicorn app.main:app --reload --port 8000`（§7）
+- [ ] config.js `API_BASE_URL` 指向正确后端
 - [ ] APP 启动 → "设备配对"页 → 系统弹授权框 → 允许
 - [ ] "测试数据流"按钮能在 5 秒内收到 **Apple Watch 真实数据**
 - [ ] 进入"HRV 监测"页 → 看到 source='Apple Watch'
-- [ ] 后端能收到 `device_type='apple_watch'` 的 HRV 上报
+- [ ] 后端日志能看到 `POST /api/v1/music/session/.../hrv-update` 含 `device_type='apple_watch'`
 
 全部勾完 = v1.1 Phase 2 验证成功 🎉
 
 ### 一句话选阶段
 
-> 第一次跑通 → Phase 1A（模拟器 + 标准基座，5 分钟零证书）→ 验真机 → Phase 1B（iPhone + 免费 Apple ID + 自定义基座）/ 已付费 → Phase 2（完整真 HealthKit）
+> 第一次跑通 → Phase 1A（模拟器 + 标准基座，5 分钟**零证书零后端**）→ 验真机 → Phase 1B（iPhone + 免费 Apple ID + 自定义基座，**仍不需要后端**）/ 已付费 → Phase 2（完整真 HealthKit + 后端联调）
 
 ---
 
