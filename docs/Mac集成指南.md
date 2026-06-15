@@ -709,7 +709,8 @@ iOS Simulator 的设备类型由 **Xcode 安装时**确定，跟随 SDK 更新�
 |------|------|------|
 | 想加 iPhone 15 Pro | Xcode 默认就有 | 走 GUI 添加流程 |
 | 想加 iPhone 16 Pro | Xcode 16+ 才有 | 升级 Xcode |
-| 想加 iPhone 17（2026 刚出） | 你的 Xcode 26.3 太旧 | 升级 Xcode 到支持该型号的版本 |
+| 想加 **iPhone 17 Pro** | Xcode 26.3 **已支持**（2026-06-15 实测） | 走 GUI 添加流程 |
+| 想加比 Xcode 26.3 发布的更晚的型号（如 iPhone 17 Air 等） | 当前 Xcode 不认识 | 升级 Xcode |
 | 想加 iPhone 4s / 5c 老机型 | 新 Xcode 已移除 | 降级到对应时代的 Xcode（不推荐） |
 
 **Phase 1A 推荐**：iPhone 15 Pro + iOS 17.0 这两个 combo 已经够覆盖大部分 UI 验证场景，**不必追求最新型号**。模拟器只是验 UI 流程，型号差异主要是屏幕尺寸 / 灵动岛 / 刘海，uni-app 用 rpx 自适应不挑。
