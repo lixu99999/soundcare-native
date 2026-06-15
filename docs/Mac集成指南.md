@@ -149,6 +149,8 @@ npm install
 
 > 这一步通常在第一次 npm install 后 HBuilderX 会提示，按提示接受即可。
 
+> **2026-06-15 复盘**：问题 4 **不是必要修复**。Windows 端单独加 `vueVersion: "3"`（问题 1）就已解决编译问题，未降级 vite 也跑通 H5。如果 Mac 端按问题 1 修复后能正常编译，**跳过本节**，`package.json` 保持 5.x 默认即可。如果 Mac 端昨天为了修编译问题降级了 vite 依赖，可以放心还原：`git checkout package.json package-lock.json`（或直接 `git reset --hard origin/main`）。
+
 ---
 
 ## 4. 制作自定义调试基座（关键步骤）
