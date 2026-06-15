@@ -27,6 +27,7 @@ iOS HRV 原生插件开发。
   - **Q6 step 1 重写：iOS 开发者模式开关默认隐藏**（2026-06-15）：必须先让 Xcode 主动握手（`xcrun devicectl enable-developer-mode` 或 Devices 窗口），开关才出现；附 iOS 26 备用路径（设置搜索 / 关于本机彩蛋 / Apps → 开发者）
   - **Q7 新增：模拟器添加设备型号**（2026-06-15）：HBuilderX 用的就是 Xcode Simulator.app（不是独立程序）；GUI 添加步骤 + `xcrun simctl list devicetypes/runtimes` 查询；型号不在列表里 = 升级 Xcode
   - **Phase 0 新增：H5 模拟预验证**（2026-06-15）：HBuilderX H5 模拟 + 本地后端实测可生成 LLM 提示词 + 播放音频（效果和微信小程序一样），iOS 模拟器大概率也通。§4.0 决策表 + §10 checklist 同步加入 Phase 0
+  - **Q8 新增：HBuilderX 编译产物位置**（2026-06-15）：HBuilderX GUI 输出在 `app/unpackage/`（H5 / app-plus / IPA），CLI (`npm run dev`) 输出在 `app/dist/`；自定义基座 .ipa 在 HBuilderX 插件目录（控制台打印或 `find ~/HBuilderX -name "*SoundCare*.ipa"`）
 - ⏸ **Mac 端待用户执行**：Phase 1A（模拟器 + 标准基座，零证书零后端）→ Phase 1B（iPhone + 自定义基座 + 免费 Apple ID，仍零后端）→ Phase 2（付费 + 自定义基座 + 真 HealthKit + 后端）
 - ⏸ v1.2：player 接入 startHRVSession（963 行，重构风险高）
 - ⏸ v2.0：付费 Apple Developer + 自定义基座 + 真 HealthKit（可选升级）
