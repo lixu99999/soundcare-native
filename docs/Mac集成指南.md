@@ -581,10 +581,35 @@ self.invoke(methodName: "onHRVUpdate", params: event)
 
 #### 排查步骤（按顺序试）
 
-1. **开启 iPhone 开发者模式**（最常被忽略）
+1. **开启 iPhone 开发者模式**（最常被忽略 + 最容易找不到开关）
    - iPhone → 设置 → 隐私与安全性 → **开发者模式** → 打开
    - iPhone 会要求重启，重启后再次解锁确认
    - 不开这个 Xcode 永远不显示设备
+
+   > **⚠️ 关键陷阱（iOS 16+/iOS 26 通用）**：**"开发者模式"开关在 Settings 里默认是隐藏的**！iOS 不会主动暴露这个入口，必须先让 Xcode 主动去"唤醒"iPhone 的开发者子系统，开关才会出现。所以正确的顺序是：
+   >
+   > 1. **Mac 端先打开 Xcode**（先别急着去 iPhone 找开关）
+   > 2. Xcode → **Window → Devices and Simulators**
+   > 3. 这时 Xcode 会向 iPhone 发起"开发者握手"，iPhone 会**弹出一个系统提示** "Xcode would like to enable Developer Mode on this iPhone" → 点"OK" 或"启用"
+   > 4. **这时候**再回到 iPhone → 设置 → 隐私与安全性 → **开发者模式**开关才会出现
+   > 5. 打开 → iPhone 自动重启 → 解锁后确认
+
+   > **如果 Xcode 不弹那个 prompt**（常见于 HBuilderX 已先用了 iPhone 的场景，HBuilderX 把"开发握手"做完但 Xcode 没察觉）：
+   > - 退出 Xcode（Cmd+Q 完全退出）
+   > 终端执行：
+   > ```bash
+   > # 列出已连接设备
+   > xcrun devicectl list devices
+   > # 强制触发开发者模式（替换 <UDID> 为上面输出的 UDID）
+   > xcrun devicectl enable-developer-mode --device <UDID>
+   > ```
+   > iPhone 会弹出系统 prompt → 接受 → 再去设置里找开关
+
+   > **iOS 26 找不到开关的备用路径**（设置结构大改后）：
+   > - 设置顶部**下拉搜索** → 输入 "开发者" 或 "Developer" → 跳出来哪个点哪个
+   > - 设置 → 通用 → 关于本机 → 多次点击"模型名称"或"序列号"区域**进入开发者模式**（Apple 内部彩蛋，长期保留）
+   > - 设置 → 通用 → VPN 与设备管理（部分版本叫"设备管理"）→ 顶部有"开发者"区块
+   > - 设置 → Apps → 开发者（iOS 26 重新分类后部分用户会在这里看到）
 
 2. **检查 iPhone 的"信任此 Mac"弹窗**
    - 连上数据线时，iPhone 应该弹出 "信任此 Mac?" 对话框 → 点"信任" + 输入解锁密码
