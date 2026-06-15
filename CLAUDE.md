@@ -26,6 +26,7 @@ iOS HRV 原生插件开发。
   - **Xcode 设备列表看不到 iPhone 15 Pro**：Mac 集成指南 §9 Q6 新增。Finder/HBuilderX 用文件传输信任，Xcode 需额外开发者配对信任（独立机制）。7 步排查（开发者模式 / 信任弹窗 / usbmuxd 重启 / USB 配件 / 手动添加 / DeviceSupport / 换线）
   - **Q6 step 1 重写：iOS 开发者模式开关默认隐藏**（2026-06-15）：必须先让 Xcode 主动握手（`xcrun devicectl enable-developer-mode` 或 Devices 窗口），开关才出现；附 iOS 26 备用路径（设置搜索 / 关于本机彩蛋 / Apps → 开发者）
   - **Q7 新增：模拟器添加设备型号**（2026-06-15）：HBuilderX 用的就是 Xcode Simulator.app（不是独立程序）；GUI 添加步骤 + `xcrun simctl list devicetypes/runtimes` 查询；型号不在列表里 = 升级 Xcode
+  - **Phase 0 新增：H5 模拟预验证**（2026-06-15）：HBuilderX H5 模拟 + 本地后端实测可生成 LLM 提示词 + 播放音频（效果和微信小程序一样），iOS 模拟器大概率也通。§4.0 决策表 + §10 checklist 同步加入 Phase 0
 - ⏸ **Mac 端待用户执行**：Phase 1A（模拟器 + 标准基座，零证书零后端）→ Phase 1B（iPhone + 自定义基座 + 免费 Apple ID，仍零后端）→ Phase 2（付费 + 自定义基座 + 真 HealthKit + 后端）
 - ⏸ v1.2：player 接入 startHRVSession（963 行，重构风险高）
 - ⏸ v2.0：付费 Apple Developer + 自定义基座 + 真 HealthKit（可选升级）
@@ -38,6 +39,13 @@ iOS HRV 原生插件开发。
 4. `docs/v1.1_JS层Mock兜底方案.md` - v1.1-mock 阶段设计（Mac 评审必读）
 
 ## Mac 集成待办
+
+### Phase 0（H5 模拟预验证，需后端 5 分钟）
+
+- [ ] 启后端：`uvicorn app.main:app --reload --port 8000`
+- [ ] HBuilderX → 运行 → 运行到 **浏览器**（H5）
+- [ ] 首页 / 生成 / 播放 / 个人 / AI 生成页全跑通
+- [ ] LLM 提示词生成 + 音频播放效果对得上小程序
 
 ### Phase 1A（最推荐入口，零证书 5 分钟）
 
