@@ -17,6 +17,10 @@ iOS HRV 原生插件开发。
   - `3e35de1` hrv-monitor 5 级状态 + 初始值对齐
   - `30c787a` music.js startHRVSession 按数据源分支 device_type
   - `9daa822` Mac集成指南 §4.0 拆为 Phase 1（免费+mock）+ Phase 2（付费+HealthKit）
+- ✅ 2026-06-15 Windows 端 H5 调试（Mac 不在身边时本地验流程）：
+  - HBuilderX 3.95+ alpha 4 个已知问题修复（manifest.json vueVersion / index.html 入口 / tabBar 字体 / 标题栏颜色）
+  - HRV mock 算法修正（移除 feedback loop，5 秒节拍）
+  - hrv-monitor 页面 UI 对齐小程序播放器（虚线参考线 20/50/80/100ms、坐标轴翻转、状态/趋势副文本更小、紫色卡片 + 橙色边框）
 - ⏸ **Mac 端待用户执行**：Phase 1（标准基座 + mock 验证）或 Phase 2（付费 + 真 HealthKit）
 - ⏸ v1.2：player 接入 startHRVSession（963 行，重构风险高）
 - ⏸ v2.0：付费 Apple Developer + 自定义基座 + 真 HealthKit（可选升级）

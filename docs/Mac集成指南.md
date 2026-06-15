@@ -55,6 +55,100 @@ npm install
        └── SoundCareHRV/  ← iOS 原生插件源码
    ```
 
+### 3.5 HBuilderX 3.95+ alpha 已知问题（必读）
+
+> 本项目使用 HBuilderX 3.95+ alpha 验证，alpha 版有几个已知坑。**第一次打开项目时如果遇到以下问题，按本节修复**：
+
+#### 问题 1：iOS 模拟器编译报错「缺少编译器」
+
+**症状**：
+
+```
+[错误] 缺少编译器：vue/compiler-sfc
+```
+
+**原因**：`manifest.json` 没有显式声明 `vueVersion`，HBuilderX 默认按 Vue 2 解析，但 uniapp vite plugin 走 Vue 3 路径，找不到 Vue 3 编译器。
+
+**修复**：编辑 `app/src/manifest.json`，在 `versionCode` 之后增加 `"vueVersion": "3"`：
+
+```json
+{
+  "name": "SoundCare",
+  "appid": "__UNI__SOUNDCARE_NATIVE",
+  "versionName": "1.0.0",
+  "versionCode": "100",
+  "transformPx": false,
+  "vueVersion": "3",          ← 添加这一行
+  "app-plus": { ... }
+}
+```
+
+> **副作用**：第一次保存后，HBuilderX 会触发完整的依赖解析（30s-2min），耐心等待。
+
+#### 问题 2：H5 预览 / 浏览器白屏
+
+**症状**：HBuilderX 内置浏览器或外部浏览器打开 `localhost:PORT` 时白屏，控制台只有 `[vite] connected`，没有报错。
+
+**原因**：HBuilderX 3.95+ alpha 的 uni-app vite plugin 在某些情况下**不会自动注入 `<script src="/src/main.js">` 入口**到 `index.html`。
+
+**修复**：编辑 `app/index.html`，在 `<div id="app"></div>` 之后手动添加 main.js 引用：
+
+```html
+<body>
+  <div id="app"></div>
+  <script type="module" src="/src/main.js"></script>   ← 手动添加
+</body>
+```
+
+#### 问题 3：底部 tabBar 字体小 + 页面标题（导航栏）黑色
+
+**症状**：
+- tabBar 上的「首页 / HRV 监测 / 我的」字体约 10px
+- 页面顶部导航栏标题在深色背景上显示黑色，看不清
+
+**修复**：编辑 `app/src/pages.json`：
+
+```json
+{
+  "globalStyle": {
+    "navigationBarTextStyle": "white",      ← 把 "black" 改为 "white"
+    "navigationBarTitleText": "SoundCare",
+    "navigationBarBackgroundColor": "#1a1a2e"
+  },
+  "tabBar": {
+    "color": "#888888",
+    "selectedColor": "#FF6B00",
+    "backgroundColor": "#1a1a2e",
+    "fontSize": "14px",                      ← 加上这一行
+    "iconWidth": "22px",
+    "list": [
+      { "pagePath": "pages/index/index", "text": "首页" },
+      { "pagePath": "pages/hrv-monitor/index", "text": "HRV监测" },
+      { "pagePath": "pages/profile/index", "text": "我的" }
+    ]
+  }
+}
+```
+
+> **小贴士**：HBuilderX 改完 `pages.json` 后会自动重载；如果 tabBar 没刷新，手动重启 HBuilderX。
+
+#### 问题 4：vite plugin 版本与 HBuilderX 不匹配
+
+**症状**：HBuilderX 自带的 vite 插件版本比 `package.json` 中声明的低，运行时报 `Cannot find module 'vite/dist/node/index.js'` 之类。
+
+**修复**（Mac 端 2026-06-14 已验证）：降低 `package.json` 中 vite 相关版本：
+
+```json
+{
+  "devDependencies": {
+    "vite": "^4.0.0",                    ← 从 5.x 降到 4.x
+    "@dcloudio/vite-plugin-uni": "^3.0.0"  ← 对齐 HBuilderX 自带
+  }
+}
+```
+
+> 这一步通常在第一次 npm install 后 HBuilderX 会提示，按提示接受即可。
+
 ---
 
 ## 4. 制作自定义调试基座（关键步骤）
