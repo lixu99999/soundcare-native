@@ -21,8 +21,8 @@ iOS HRV 原生插件开发。
   - HBuilderX 3.95+ alpha 4 个已知问题修复（manifest.json vueVersion / index.html 入口 / tabBar 字体 / 标题栏颜色）
   - HRV mock 算法修正（移除 feedback loop，5 秒节拍）
   - hrv-monitor 页面 UI 对齐小程序播放器（虚线参考线 20/50/80/100ms、坐标轴翻转、状态/趋势副文本更小、紫色卡片 + 橙色边框）
-  - **DCloud 公共企业签名停用**：Mac 集成指南 §3.6 新增。Phase 1 不再"标准基座开箱即用"，必须自带 Apple ID 证书 + 制作自定义基座（不勾选 HealthKit）；§4.0 拆分 Phase 1/2 + 新增 §4.0.5 通用证书导入 + §4.1/§4.2 重编号
-- ⏸ **Mac 端待用户执行**：Phase 1（**自定义基座** + 免费 Apple ID + JS mock）或 Phase 2（**自定义基座** + 付费 + 真 HealthKit）
+  - **DCloud 公共企业签名停用**：Mac 集成指南 §3.6 新增。Phase 1 拆分为 1A（模拟器+标准基座，零证书 5 分钟）+ 1B（iPhone+自定义基座，免费 Apple ID 30 分钟）；§4.0 + §10 同步更新
+- ⏸ **Mac 端待用户执行**：Phase 1A（模拟器 + 标准基座，零证书）→ Phase 1B（iPhone + 自定义基座 + 免费 Apple ID）→ Phase 2（付费 + 自定义基座 + 真 HealthKit）
 - ⏸ v1.2：player 接入 startHRVSession（963 行，重构风险高）
 - ⏸ v2.0：付费 Apple Developer + 自定义基座 + 真 HealthKit（可选升级）
 
@@ -35,9 +35,18 @@ iOS HRV 原生插件开发。
 
 ## Mac 集成待办
 
-### Phase 1（推荐入口，免费）
+### Phase 1A（最推荐入口，零证书 5 分钟）
 
 - [ ] HBuilderX 打开 app/ 项目
+- [ ] HBuilderX → 运行 → 运行到 iOS 模拟器（**标准基座**直接可选）
+- [ ] 验证首页 / 生成 / 播放 / 个人页
+- [ ] 进入"设备配对" → 测试数据流（5 秒内应看到 Mock 事件）
+- [ ] 进入"HRV 监测" → 启动 → 看到 Mock 数据流
+- [ ] 停止监测
+
+### Phase 1B（iPhone 真机 UX，免费 30 分钟）
+
+- [ ] Phase 1A 全部勾完
 - [ ] 用自己的免费 Apple ID 登录 Xcode（§4.0.5）
 - [ ] Xcode 自动生成 Personal Team "Apple Development" 证书
 - [ ] HBuilderX → 制作自定义调试基座（**不**勾选 HealthKit，§4.2）

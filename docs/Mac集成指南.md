@@ -195,22 +195,51 @@ HBuilderX 菜单「运行 → 运行到手机或模拟器」时让你选基座�
 
 ### 4.0 账号与阶段说明
 
-v1.1 起，HRV 插件支持**两阶段策略**，先免费跑通 UI 流程，付费后再接真 HealthKit。
+v1.1 起，HRV 插件支持**三阶段策略**，先在模拟器 5 分钟跑通，再免费上 iPhone 真机，最后付费接真 HealthKit。
 
-> **2026-06-15 重要更正**：DCloud 公共企业签名已停用（详见 §3.6），两阶段**均需自带 Apple ID + 证书**。Phase 1 仍可免费（免费 Apple ID + Xcode 自签 dev cert），但要自己做自定义基座，不再"开箱即用"。
+> **2026-06-15 重要更正**：DCloud 公共企业签名已停用（详见 §3.6），iPhone 真机路径**需要自带 Apple ID + 证书**。但**模拟器路径不受影响**（苹果只限制真机的企业证书），仍可使用 DCloud 标准基座 — 这给了我们一个零证书的快速验证入口。
 
-#### Phase 1（推荐入口）：免费 Apple ID + 自定义基座 + JS Mock
+#### Phase 1A（最快入口，0 证书）：模拟器 + 标准基座 + JS Mock
 
 | 项 | 说明 |
 |----|------|
-| 账号 | 免费 Apple ID（Personal Team） |
-| 基座 | HBuilderX **自定义调试基座**（用自己 Apple ID 签的，**不带 HealthKit**） |
+| 设备 | Mac 自带 iOS 模拟器 |
+| 账号 | **不需要** |
+| 基座 | HBuilderX **标准基座**（DCloud 公共签名，**模拟器仍可用**，§3.6） |
 | HRV 数据 | **JS 层 mock**（`hrv-plugin.js` 内部 `startJsMock`，与 soundcare-app 同样算法） |
-| 限制 | 真实 Apple Watch 数据**不可用**，仅 UI 流程演示 |
-| 适合 | 验证 iOS 基础界面 / 播放页 / 设备配对页 / HRV 监测页的完整流程 |
+| 工作量 | 5 分钟 |
+| 限制 | 模拟器无真传感器 / 无真 HealthKit / 无 iOS 真机 UX 细节差异 |
+| 适合 | 第一轮验 UI 流程 + HRV mock 数据流是否能正常跑通 |
 
-**Phase 1 的 Mac 端工作**：
+**为什么模拟器 + 标准基座能跑通 HRV mock？**
+
+`hrv-plugin.js` 加载时调 `uni.requireNativePlugin('SoundCareHRV')`：
+- 标准基座没注册 SoundCareHRV 插件 → `plugin === null` → 触发 `startJsMock()` 兜底
+- `isAvailable()` 返回 `{ available: true, mockFallback: true }` → UI 不显示"设备不支持"
+- 监测启动后 5 秒一帧 mock 数据（RMSSD ≈ 40ms，5 级状态对齐小程序）
+- 真机 + 自定义基座场景：插件已注册 → 走原生层，但只要 `mockMode: true` 同样能跑 mock
+
+**Phase 1A 的 Mac 端工作**（5 分钟搞定）：
 1. HBuilderX 打开 `soundcare-native/app` 项目
+2. HBuilderX → 运行 → 运行到 iOS 模拟器（**标准基座**直接可选）
+3. 进入 APP 验证：首页 / 生成 / 播放 / 个人 / 设备配对 / HRV 监测
+4. 进入「HRV 监测」→ 启动 → 5 秒后看到 mock 数据流（曲线、状态、趋势）
+5. 停止监测
+
+#### Phase 1B（真机 UX，免费）：iPhone 真机 + 自定义基座（免费 Apple ID）+ JS Mock
+
+| 项 | 说明 |
+|----|------|
+| 设备 | iPhone 真机（iOS 17+） |
+| 账号 | 免费 Apple ID（Personal Team） |
+| 基座 | HBuilderX **自定义调试基座**（用自己 Apple ID 签的，**不**勾选 HealthKit） |
+| HRV 数据 | **JS 层 mock**（同 Phase 1A） |
+| 工作量 | 30 分钟（首次做基座） |
+| 限制 | 真实 Apple Watch 数据**不可用**，仅 UI 流程 + mock 数据 |
+| 适合 | 验证 iPhone 真机 UX（与模拟器的渲染差异、性能、手势） |
+
+**Phase 1B 的 Mac 端工作**：
+1. Phase 1A 跑通后，确认要走真机再继续
 2. 用自己的免费 Apple ID 登录（Xcode → Settings → Accounts）
 3. Xcode 自动生成 Personal Team dev cert（§4.0.5）
 4. HBuilderX → 运行 → 制作自定义调试基座（**不**勾选 HealthKit），用自己的免费证书签
@@ -232,22 +261,23 @@ v1.1 起，HRV 插件支持**两阶段策略**，先免费跑通 UI 流程，付
 **Phase 2 何时启动**：
 - 上线前 3-6 个月启动合规（算法备案 + APP 备案）
 - 拿到付费账号后 24-48 小时激活
-- 然后走下面的 §4.0.5 + §4.1 + §4.2 + §4.3
+- 然后走下面的 §4.0.5 + §4.1 + §4.2
 
 #### 决策表
 
 | 你的情况 | 推荐阶段 |
 |----------|----------|
-| 想先看 iOS 跑起来 | **Phase 1**（免费 Apple ID + JS mock） |
+| 第一次跑通 / 想 5 分钟看效果 | **Phase 1A**（模拟器 + 标准基座，零证书） |
+| 模拟器过了，要验真机 UX | **Phase 1B**（iPhone + 免费 Apple ID + 自定义基座） |
 | 已有付费账号 / 准备上线 | Phase 2（直接做自定义基座） |
 | 团队多人 + 长期项目 | Phase 2（一次到位） |
-| 时间紧 + 验证后端 | Phase 1（最快路径，但 Mac 端要做基座） |
+| 时间紧 + 验证后端 | Phase 1A → Phase 1B（先快后稳） |
 
-### 4.0.5 通用：导入 Apple ID 证书（Phase 1 + Phase 2 必做）
+### 4.0.5 通用：导入 Apple ID 证书（Phase 1B + Phase 2 必做）
 
-> **2026-06-15 新增**：DCloud 公共签名停用（§3.6）后，**两阶段都必须自带证书**。本节为通用流程，Phase 1 / Phase 2 都从这开始。
+> **2026-06-15 新增**：DCloud 公共签名停用（§3.6）后，**iPhone 真机路径必须自带证书**。**Phase 1A（模拟器 + 标准基座）跳过本节**。Phase 1B / Phase 2 都从这开始。
 
-#### Phase 1（免费 Apple ID）
+#### Phase 1B（免费 Apple ID）
 
 1. 打开 Xcode → Settings → Accounts
 2. 左下角 "+" → 添加你的免费 Apple ID
@@ -497,16 +527,32 @@ self.invoke(methodName: "onHRVUpdate", params: event)
 
 ## 10. 完整流程 checklist
 
-> **2026-06-15 重要**：DCloud 公共签名停用（§3.6），**两阶段都必须自带 Apple ID 证书 + 自定义基座**。Phase 1 仍可免费（免费 Apple ID + Xcode 自签 dev cert）。
+> **2026-06-15 重要**：DCloud 公共签名停用（§3.6），iPhone 真机路径必须自带 Apple ID 证书 + 自定义基座。**但模拟器路径（Phase 1A）零证书、5 分钟跑通**，可作为第一轮验证。
 
-### Phase 1（免费 Apple ID + 自定义基座 + JS Mock）
+### Phase 1A（模拟器 + 标准基座 + JS Mock，5 分钟）
+
+> **最推荐入口**：零 Apple ID / 零证书 / 零基座，直接用 DCloud 标准基座在 Mac iOS 模拟器上跑。HRV mock 数据流也能跑通（`plugin==null` 触发 JS mock 兜底，§4.0）。
 
 按顺序勾选：
 
 - [ ] Mac 已安装 Xcode 26.3 + HBuilderX 3.95+
 - [ ] git clone + npm install 完成
 - [ ] HBuilderX 打开 app/ 目录成功（首次遇到 §3.5 的 4 个坑按对应说明修）
-- [ ] 自己的免费 Apple ID 已登录 Xcode（§4.0.5 Phase 1 部分）
+- [ ] HBuilderX → 运行 → 运行到 **iOS 模拟器**（**标准基座**直接可选）
+- [ ] APP 启动，能进入"首页 / 生成 / 播放 / 个人"
+- [ ] 进入"设备配对"页 → 触发授权（mock 模式不弹系统框）
+- [ ] "测试数据流（5 秒）"按钮能在 5 秒内收到 Mock 事件
+- [ ] 进入"HRV 监测"页 → 启动 → 看到 Mock 数据流（曲线、状态、趋势、BPM 建议）
+- [ ] 停止监测 → 数据流停止
+
+全部勾完 = v1.1 Phase 1A 验证成功 🎉（**Mac 端零证书工作**）
+
+### Phase 1B（iPhone 真机 + 自定义基座 + JS Mock，30 分钟）
+
+> Phase 1A 跑通后再做。多一步基座打包，验证 iPhone 真机 UX。
+
+- [ ] Phase 1A 全部勾完
+- [ ] 自己的免费 Apple ID 已登录 Xcode（§4.0.5 Phase 1B 部分）
 - [ ] Xcode 已为该 Apple ID 生成 "Apple Development" 证书
 - [ ] HBuilderX → 制作自定义调试基座（**不**勾选 HealthKit，§4.2）
 - [ ] iPhone 真机已连接并信任
@@ -517,7 +563,7 @@ self.invoke(methodName: "onHRVUpdate", params: event)
 - [ ] 进入"HRV 监测"页 → 启动 → 看到 Mock 数据流
 - [ ] 停止监测 → 数据流停止
 
-全部勾完 = v1.1 Phase 1 验证成功 🎉
+全部勾完 = v1.1 Phase 1B 验证成功 🎉
 
 ### Phase 2（付费 + 自定义基座 + 真 HealthKit）
 
@@ -536,7 +582,7 @@ self.invoke(methodName: "onHRVUpdate", params: event)
 
 ### 一句话选阶段
 
-> 没付费 → Phase 1（免费 Apple ID + 自定义基座 + JS mock） / 已付费 → Phase 2（完整真 HealthKit）
+> 第一次跑通 → Phase 1A（模拟器 + 标准基座，5 分钟零证书）→ 验真机 → Phase 1B（iPhone + 免费 Apple ID + 自定义基座）/ 已付费 → Phase 2（完整真 HealthKit）
 
 ---
 
