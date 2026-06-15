@@ -573,6 +573,56 @@ self.invoke(methodName: "onHRVUpdate", params: event)
 
 > **2026-06-15 好消息（Phase 1A 路径）**：模拟器 + 标准基座 + JS mock **能跑通 HRV 数据流**（`plugin==null` 触发 mock，§6.1），5 分钟跑通全部 UI 流程，**不需要**做自定义基座，**不需要**后端。详见 §10 Phase 1A。
 
+### Q6: iPhone 15 Pro 连 Mac 后，Finder 和 HBuilderX 都看到了，Xcode 的 Devices and Simulators 列表里却没显示？
+
+> **2026-06-15 新增**：常见于 DCloud 公共签名停用之后，Mac 端第一次做自定义基座的场景。
+
+**原因**：Finder 和 HBuilderX 用的是 iPhone 文件传输的"基础信任"（Trust this Mac for files），而 Xcode 需要的是**额外的开发配对信任**（developer pairing）。两个信任机制独立，状态不同步就会出现这个症状。
+
+#### 排查步骤（按顺序试）
+
+1. **开启 iPhone 开发者模式**（最常被忽略）
+   - iPhone → 设置 → 隐私与安全性 → **开发者模式** → 打开
+   - iPhone 会要求重启，重启后再次解锁确认
+   - 不开这个 Xcode 永远不显示设备
+
+2. **检查 iPhone 的"信任此 Mac"弹窗**
+   - 连上数据线时，iPhone 应该弹出 "信任此 Mac?" 对话框 → 点"信任" + 输入解锁密码
+   - **如果没弹窗**（之前点过"不信任"或超时）：
+     - iPhone → 设置 → 通用 → 传输或还原 iPhone → 还原 → **还原位置与隐私**
+     - 重新插线，会再次弹"信任"框
+
+3. **重置 Mac 端的设备配对缓存**
+   - 退出 Xcode（Cmd+Q 完整退出，不要只是关窗口）
+   - 终端执行：
+     ```bash
+     sudo killall -9 usbmuxd
+     # 等待 5 秒，usbmuxd 会自动重启
+     ```
+   - 重开 Xcode → Window → Devices and Simulators，看设备是否出现
+
+4. **检查 iPhone 的 USB 配件设置**（iOS 16+）
+   - iPhone → 设置 → Face ID 与密码 → **USB 配件** → 打开
+   - 不开的话锁屏状态 USB 可能被 iOS 安全策略拦截
+
+5. **手动添加设备**（Xcode 没自动发现时）
+   - Xcode → Window → Devices and Simulators
+   - 左下角 "+" → 选 "Add Device"
+   - 如果能在这里选到你的 iPhone 15 Pro → 说明配对通道是通的，只是没自动发现
+   - 如果连"+"里都看不到 → 回到步骤 1-3 重置
+
+6. **下载 iOS DeviceSupport**（iOS 版本不匹配时）
+   - 现象：Xcode 报错 "Could not find Developer Disk Image"
+   - 解决：https://github.com/filsv/iOSDeviceSupport 找对应 iOS 版本的 .zip
+   - 解压到 `~/Library/Developer/Xcode/iOS DeviceSupport/`
+   - 重启 Xcode
+
+7. **最后一招：换数据线 / 换 USB 口**
+   - 偶有 USB 集线器或特定 USB 口供电不稳，导致 usbmuxd 识别失败
+   - 优先用 Mac 自带 USB 口 + 苹果原装或 MFi 认证线
+
+**经验**：步骤 1 + 2（开发者模式 + 信任弹窗）能解决 80% 的情况。如果 1-3 都做完还是不显示，附上 `Console.app`（搜索 "usbmuxd" 或 "MobileDevice"）的日志给 Claude Code 排查。
+
 ---
 
 ## 10. 完整流程 checklist
