@@ -754,54 +754,45 @@ iOS Simulator 的设备类型由 **Xcode 安装时**确定，跟随 SDK 更新�
 
 ### Q8: HBuilderX 编译的文件在哪里？跟 `npm run dev` 输出的 `dist/dev` 是什么关系？
 
-> **2026-06-15 新增**：Mac 端第一次用 HBuilderX GUI 的人容易困惑 — CLI 编译会产出 `dist/dev/`，HBuilderX GUI 编译产出在另一个目录。
+> **2026-06-15 修正**：之前 Q8 写 `app/unpackage/` 是错的 — 本项目用 HBuilderX 3.95+ alpha + Vite 工具链，**GUI 编译产物不在项目目录**。
 
 #### 简短答案
 
-**HBuilderX GUI 的编译输出在 `app/unpackage/` 下面**，不是 `dist/`。两边用的是同一套 Vite 工具，但 HBuilderX 把 build 产物放到了 unpackage/ 目录管理。
+| 编译方式 | 产物在哪 |
+|----------|----------|
+| **CLI**: `npm run dev:app-inside`（终端） | `app/dist/` 下面（uni-app CLI 标准位置） |
+| **HBuilderX GUI**: 运行 → 浏览器 / iOS 模拟器 / 真机 | **HBuilderX 自己内部缓存**（不在项目目录） |
+| **HBuilderX GUI**: 制作自定义调试基座 | `~/HBuilderX/plugins/.../bases/*.ipa`（HBuilderX 安装目录） |
+
+#### 为什么项目里看不到 `unpackage/`？
+
+旧版 HBuilderX（≤3.8）会把 GUI 编译产物写到项目根目录的 `unpackage/` 里。3.95+ alpha 改成 Vite 工具链后，**GUI 编译全程在 HBuilderX 自己的内部缓存里完成**，项目目录保持干净 — 所以你 `ls app/` 只会看到 `dist/`（CLI 留下的）和 `.hbuilderx/launch.json`，**没有 unpackage/ 是正常的**。
 
 #### 详细对照
 
-| 编译方式 | 触发动作 | 输出目录 |
+| 编译方式 | 触发动作 | 产物位置 |
 |----------|----------|----------|
-| **CLI**: `npm run dev:h5` | 终端跑 npm | `app/dist/dev/h5/` 或 `app/dist/dev/mp-weixin/` 等 |
-| **CLI**: `npm run build:h5` | 终端跑 npm | `app/dist/build/h5/` |
-| **HBuilderX GUI**: 运行 → 浏览器（H5） | HBuilderX 内部 build → 启内置 dev server | **`app/unpackage/dist/dev/h5/`**（先落盘）+ 内存中启服务 |
-| **HBuilderX GUI**: 运行 → iOS 模拟器 | HBuilderX 内部 build → 打 .ipa → 装到模拟器 | **`app/unpackage/dist/dev/app-plus/`**（产物） + `unpackage/cache/.../SoundCare.ipa` |
-| **HBuilderX GUI**: 运行 → iPhone 真机 | 同上 | `app/unpackage/dist/release/app-plus/` 或 `dev/app-plus/`（看你点的是 debug 还是 release） |
-| **HBuilderX GUI**: 制作自定义调试基座 | HBuilderX 内部 build → 打 .ipa | **HBuilderX 插件目录**（路径见下文） |
+| **CLI**: `npm run dev:app-inside` | 终端跑 npm | `app/dist/dev/mp-weixin/`（平台名跟 npm 脚本里 `-p` 一致） |
+| **CLI**: `npm run build:app-inside` | 终端跑 npm | `app/dist/build/mp-weixin/` |
+| **HBuilderX GUI**: 运行 → 浏览器（H5） | HBuilderX 内部 build → 启内置 dev server | HBuilderX 内部缓存（看不到本地文件，正常） |
+| **HBuilderX GUI**: 运行 → iOS 模拟器 | HBuilderX 内部 build → 打 .ipa → 装到模拟器 | HBuilderX 内部缓存（看不到本地文件，正常） |
+| **HBuilderX GUI**: 运行 → iPhone 真机 | 同上 | HBuilderX 内部缓存（看不到本地文件，正常） |
+| **HBuilderX GUI**: 制作自定义调试基座 | HBuilderX 内部 build → 打 .ipa | `~/HBuilderX/plugins/launcher*/packages/*/bases/` |
 
-#### 各产物位置速查
+#### 自定义基座 .ipa 怎么找（**唯一会落到磁盘的 GUI 产物**）？
 
 ```bash
-# 项目根目录（app/）
-cd ~/code/soundcare-native/app
+# 全盘搜 SoundCare 命名的 .ipa
+find ~/HBuilderX -name "*SoundCare*.ipa" 2>/dev/null
 
-# 1. 编译后的 H5 / APP 源代码（uni-app 的 vue → js 编译产物）
-ls unpackage/dist/dev/h5/        # H5 编译产物
-ls unpackage/dist/dev/app-plus/  # iOS / Android 编译产物（wgt 包原始文件）
-
-# 2. 最终的 .ipa / .apk 包
-find unpackage -name "*.ipa" -o -name "*.apk"
-# 通常在 unpackage/cache/.../SoundCare.ipa 或 unpackage/release/...
-
-# 3. 自定义调试基座（不在项目目录，在 HBuilderX 安装目录）
+# 或者 HBuilderX 顶部菜单「帮助 → HBuilderX 安装目录」打开的路径下
 ls ~/HBuilderX/plugins/launcher*/packages/*/bases/
-# 或 HBuilderX 顶部菜单「帮助 → HBuilderX 安装目录」打开的路径下
 ```
 
-#### 自定义基座 .ipa 的具体路径怎么找？
-
-制作自定义基座时，**HBuilderX 控制台会打印路径**。类似：
+或者更直接 — 制作时 HBuilderX 控制台会打印完整路径，类似：
 
 ```
 基座已生成：/Users/yourname/HBuilderX/plugins/launcher-ios@x.x.x/packages/SoundCare/package/SoundCare_Debug.ipa
-```
-
-把这个路径复制下来，下次重新装基座时直接用（不用每次都重新打包）。或者直接搜：
-
-```bash
-find ~/HBuilderX -name "*SoundCare*.ipa" 2>/dev/null
 ```
 
 #### HBuilderX vs CLI 各自适用场景
@@ -811,10 +802,11 @@ find ~/HBuilderX -name "*SoundCare*.ipa" 2>/dev/null
 | Phase 0 H5 联调 | HBuilderX GUI | 启动快、tabBar 修复、可以直接看 console |
 | Phase 1A iOS 模拟器 | HBuilderX GUI | 一键打包 + 装到模拟器 |
 | Phase 1B/2 iPhone 真机 | HBuilderX GUI | 签名 + 打包 + 安装一体化 |
-| CI/CD 自动化 | CLI (`npm run build`) | 可脚本化、可在无头环境跑 |
+| CI/CD 自动化 | CLI (`npm run build:app-inside`) | 可脚本化、可在无头环境跑 |
 | 调试原生插件编译 | HBuilderX GUI | 控制台看 Swift 编译日志方便 |
+| 想看编译中间产物 | CLI | `app/dist/` 有 vue → js 的编译产物可看 |
 
-> **2026-06-15 实用建议**：开发期统一用 HBuilderX GUI（Phase 0/1A/1B/2 全覆盖）。CLI 主要留给以后 CI/CD 用，平时不混用（两套产物在 `dist/` 和 `unpackage/` 各一份，混用容易混淆）。
+> **2026-06-15 实用建议**：开发期统一用 HBuilderX GUI（Phase 0/1A/1B/2 全覆盖）。CLI 留给以后 CI/CD 用，**GUI 编译看不到产物目录是正常的**（3.95+ alpha 行为），不要去找 unpackage/。
 
 ---
 
