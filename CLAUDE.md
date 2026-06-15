@@ -24,6 +24,8 @@ iOS HRV 原生插件开发。
   - **DCloud 公共企业签名停用**：Mac 集成指南 §3.6 新增。Phase 1 拆分为 1A（模拟器+标准基座，零证书 5 分钟）+ 1B（iPhone+自定义基座，免费 Apple ID 30 分钟）；§4.0 + §10 同步更新
   - **HRV mock 测试不需要后端**：Mac 集成指南 §6.0 新增。和小程序不一样，hrv-monitor / device-pair 完全本地（`plugin==null` 触发 `startJsMock`），Phase 1A/1B 零 Python 后端跑通；§7 + §10 同步标注
   - **Xcode 设备列表看不到 iPhone 15 Pro**：Mac 集成指南 §9 Q6 新增。Finder/HBuilderX 用文件传输信任，Xcode 需额外开发者配对信任（独立机制）。7 步排查（开发者模式 / 信任弹窗 / usbmuxd 重启 / USB 配件 / 手动添加 / DeviceSupport / 换线）
+  - **Q6 step 1 重写：iOS 开发者模式开关默认隐藏**（2026-06-15）：必须先让 Xcode 主动握手（`xcrun devicectl enable-developer-mode` 或 Devices 窗口），开关才出现；附 iOS 26 备用路径（设置搜索 / 关于本机彩蛋 / Apps → 开发者）
+  - **Q7 新增：模拟器添加设备型号**（2026-06-15）：HBuilderX 用的就是 Xcode Simulator.app（不是独立程序）；GUI 添加步骤 + `xcrun simctl list devicetypes/runtimes` 查询；型号不在列表里 = 升级 Xcode
 - ⏸ **Mac 端待用户执行**：Phase 1A（模拟器 + 标准基座，零证书零后端）→ Phase 1B（iPhone + 自定义基座 + 免费 Apple ID，仍零后端）→ Phase 2（付费 + 自定义基座 + 真 HealthKit + 后端）
 - ⏸ v1.2：player 接入 startHRVSession（963 行，重构风险高）
 - ⏸ v2.0：付费 Apple Developer + 自定义基座 + 真 HealthKit（可选升级）

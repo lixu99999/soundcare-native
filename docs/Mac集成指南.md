@@ -648,6 +648,77 @@ self.invoke(methodName: "onHRVUpdate", params: event)
 
 **经验**：步骤 1 + 2（开发者模式 + 信任弹窗）能解决 80% 的情况。如果 1-3 都做完还是不显示，附上 `Console.app`（搜索 "usbmuxd" 或 "MobileDevice"）的日志给 Claude Code 排查。
 
+### Q7: 模拟器列表里没有我的 iPhone 型号，怎么增加？
+
+> **2026-06-15 新增**：DCloud 公共签名停用（§3.6）后，Phase 1A 跑在 iOS 模拟器上，需要选对设备型号。
+
+#### HBuilderX 和 iOS Simulator 是什么关系？
+
+HBuilderX 的"运行到 iOS 模拟器"**不是独立程序**，而是启动 Xcode 自带的 iOS Simulator：
+- 路径：`/Applications/Xcode.app/Contents/Developer/Applications/Simulator.app`
+- 也可以 Spotlight 搜 "Simulator" 单独打开
+- HBuilderX 编译完 uni-app 项目后，把产物加载到 Xcode 启动的 Simulator 实例里
+
+> 简单说：**Simulator.app 是 Xcode 的一部分**，HBuilderX 只是借用了它。
+
+#### 添加新设备型号（Xcode GUI）
+
+1. 打开 Xcode → **Window → Devices and Simulators**（快捷键 ⇧⌘2）
+2. 切到 **Simulators** 标签页（**不是** Devices，那页是物理设备）
+3. 左下角 **"+"** → 弹出 "Create a new simulator" 对话框：
+   - **Simulator Name**：随便起，比如 `iPhone 15 Pro Test`
+   - **Device Type**：下拉选择型号（iPhone 15 / iPhone 15 Pro / iPhone 16 Pro / iPad Pro 11-inch 等）
+   - **OS Version**：下拉选择 iOS 版本（看你装了几个 runtime）
+4. 点 **Create** → 新模拟器出现在列表里
+5. HBuilderX → 运行 → 运行到 iOS 模拟器 → 选刚创建的模拟器
+
+#### 查看所有支持的设备类型（终端）
+
+如果 Device Type 下拉里**没有**你的手机型号（比如刚出的 iPhone 17 还没被你的 Xcode 支持）：
+
+```bash
+# 列出 Xcode 支持的所有设备类型
+xcrun simctl list devicetypes
+
+# 输出示例（截取）：
+# iPhone 15 (B4D5DBF5-...)
+# iPhone 15 Plus (C9E8...)
+# iPhone 15 Pro (D2A1...)
+# iPhone 15 Pro Max (E5F3...)
+# iPhone 16 (F8A2...)         # Xcode 16+ 才有
+# iPhone 16 Pro (A1B3...)     # Xcode 16+ 才有
+# iPad Pro 11-inch (M4) (...)
+```
+
+```bash
+# 列出已安装的 iOS runtime
+xcrun simctl list runtimes
+
+# 输出示例：
+# iOS 17.5
+# iOS 18.0
+# iOS 26.0
+# iOS 26.5                      # Xcode 26.3 默认带
+```
+
+#### 设备型号真的不在列表里怎么办？
+
+iOS Simulator 的设备类型由 **Xcode 安装时**确定，跟随 SDK 更新。常见情况：
+
+| 情况 | 原因 | 解决 |
+|------|------|------|
+| 想加 iPhone 15 Pro | Xcode 默认就有 | 走 GUI 添加流程 |
+| 想加 iPhone 16 Pro | Xcode 16+ 才有 | 升级 Xcode |
+| 想加 iPhone 17（2026 刚出） | 你的 Xcode 26.3 太旧 | 升级 Xcode 到支持该型号的版本 |
+| 想加 iPhone 4s / 5c 老机型 | 新 Xcode 已移除 | 降级到对应时代的 Xcode（不推荐） |
+
+**Phase 1A 推荐**：iPhone 15 Pro + iOS 17.0 这两个 combo 已经够覆盖大部分 UI 验证场景，**不必追求最新型号**。模拟器只是验 UI 流程，型号差异主要是屏幕尺寸 / 灵动岛 / 刘海，uni-app 用 rpx 自适应不挑。
+
+#### 不增加新设备直接用现有的
+
+- Xcode 默认会装几个模拟器，打开 Simulator.app → 顶部菜单 `File → Open Simulator → iPhone 15 Pro`（或别的）即可启动
+- HBuilderX → 运行 → 运行到 iOS 模拟器也会列出所有**已创建**的模拟器（不是所有支持类型）
+
 ---
 
 ## 10. 完整流程 checklist
