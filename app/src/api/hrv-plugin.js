@@ -149,7 +149,7 @@ const MOCK_INITIAL_HRV = 40       // 初始 HRV（ms，对齐小程序）
 const MOCK_HR_MIN = 60
 const MOCK_HR_MAX = 80
 const MOCK_WINDOW_MS = 30 * 1000  // 30 秒滚动窗口（与小程序一致）
-const MOCK_INTERVAL_MS = 1000     // 事件频率 1 秒（与原生事件流匹配）
+const MOCK_INTERVAL_MS = 5000     // 事件频率 5 秒（与原生 HealthKit Observer 推送节奏一致）
 
 function startJsMock(types) {
   if (jsMockTimer) return  // 防重入
@@ -157,7 +157,6 @@ function startJsMock(types) {
   // 滚动窗口内的 RRI 样本
   const rriBuffer = []
   let baseHR = MOCK_INITIAL_HR
-  let targetHRV = MOCK_INITIAL_HRV
 
   jsMockTimer = setInterval(() => {
     const now = Date.now()
@@ -168,8 +167,10 @@ function startJsMock(types) {
     const hr = Math.round(baseHR)
 
     // 2. 模拟一个 RRI 写入窗口
+    //    variation 必须独立于计算出的 RMSSD，否则会形成 feedback loop
+    //    让 HRV 一路漂向 0。固定 variation=100 → 期望 RMSSD ≈ 40ms（正常放松）
     const interval = 60000 / hr
-    const variation = targetHRV / 2
+    const variation = 100
     const rri = interval + (Math.random() - 0.5) * variation
     rriBuffer.push({ value: rri, timestamp: now })
     // 清理窗口外
@@ -177,8 +178,8 @@ function startJsMock(types) {
       rriBuffer.shift()
     }
 
-    // 3. 算 RMSSD
-    let rmssd = targetHRV
+    // 3. 算 RMSSD（直接基于 RRI 差分，不做 smoothing/feedback）
+    let rmssd = MOCK_INITIAL_HRV
     if (rriBuffer.length >= 2) {
       let sumSq = 0
       for (let i = 0; i < rriBuffer.length - 1; i++) {
@@ -186,8 +187,6 @@ function startJsMock(types) {
         sumSq += diff * diff
       }
       rmssd = Math.sqrt(sumSq / (rriBuffer.length - 1))
-      // 缓慢趋向（避免跳变）
-      targetHRV += (rmssd - targetHRV) * 0.1
     }
 
     // 4. 推事件（与原生事件同格式）
