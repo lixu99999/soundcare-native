@@ -628,14 +628,10 @@ self.invoke(methodName: "onHRVUpdate", params: event)
 
    > **如果 Xcode 不弹那个 prompt**（常见于 HBuilderX 已先用了 iPhone 的场景，HBuilderX 把"开发握手"做完但 Xcode 没察觉）：
    > - 退出 Xcode（Cmd+Q 完全退出）
-   > 终端执行：
-   > ```bash
-   > # 列出已连接设备
-   > xcrun devicectl list devices
-   > # 强制触发开发者模式（替换 <UDID> 为上面输出的 UDID）
-   > xcrun devicectl enable-developer-mode --device <UDID>
-   > ```
-   > iPhone 会弹出系统 prompt → 接受 → 再去设置里找开关
+   > - 终端执行 `sudo killall -9 usbmuxd`（重置 Mac 端设备配对缓存，见步骤 3）
+   > - 重新插 iPhone 数据线，重开 Xcode → 这次应该会弹 prompt
+   >
+   > ~~`xcrun devicectl enable-developer-mode --device <UDID>`~~ — **2026-06-16 复盘：Xcode 26.3 不支持该命令**（`devicectl` 需要 Xcode 27+）。Mac 端别用这个命令。
 
    > **iOS 26 找不到开关的备用路径**（设置结构大改后）：
    > - 设置顶部**下拉搜索** → 输入 "开发者" 或 "Developer" → 跳出来哪个点哪个
@@ -808,6 +804,88 @@ ls ~/HBuilderX/plugins/launcher*/packages/*/bases/
 
 > **2026-06-15 实用建议**：开发期统一用 HBuilderX GUI（Phase 0/1A/1B/2 全覆盖）。CLI 留给以后 CI/CD 用，**GUI 编译看不到产物目录是正常的**（3.95+ alpha 行为），不要去找 unpackage/。
 
+### Q9: iOS 模拟器启动后白屏，只看到 HBuilderX 应用图标，SoundCare 项目不加载？
+
+> **2026-06-16 新增**：Mac 端 Phase 1A 实测踩坑 — 模拟器启动了、HBuilderX base shell 装上去了，但项目内容不显示（白屏），HBuilderX 控制台可能没有任何报错。
+
+#### 原因（高概率）
+
+**`manifest.json` 声明了原生插件 `SoundCareHRV`，但标准基座没带这个插件**。HBuilderX 3.95+ alpha 在启动 app 时会严格校验 `app-plus.nativePlugins` 里的声明，基座里找不到对应插件 → 静默拒绝启动 → 白屏。
+
+manifest.json 现在的样子（关键部分）：
+
+```json
+{
+  "app-plus": {
+    "nativePlugins": {
+      "SoundCareHRV": {              ← 这个声明导致标准基座启动失败
+        "version": "1.0.0"
+      }
+    }
+  }
+}
+```
+
+#### 修复：Phase 1A 临时注释掉 SoundCareHRV 声明
+
+`app/src/manifest.json` 改成：
+
+```json
+{
+  "app-plus": {
+    "nativePlugins": {
+      // Phase 1A (模拟器 + 标准基座) 临时注释掉，标准基座没有这个插件
+      // Phase 1B/2 (iPhone + 自定义基座) 重新打开
+      // "SoundCareHRV": {
+      //   "version": "1.0.0"
+      // }
+    }
+  }
+}
+```
+
+**改完的效果**：
+- `uni.requireNativePlugin('SoundCareHRV')` 在标准基座下本来就会返回 `null`
+- 现在 manifest 也不声明了，HBuilderX 不做严格校验，app 正常启动
+- `hrv-plugin.js` 走 mock fallback 分支 → 5 秒一帧 mock 数据
+- **HRV 监测页 / 设备配对页 全部跑通**（用 JS mock）
+
+#### Phase 切换时怎么改回？
+
+| 阶段 | SoundCareHRV 声明 | 基座 | 备注 |
+|------|-------------------|------|------|
+| Phase 0（H5 模拟） | 注释掉 | 不需要基座 | H5 走 mock fallback |
+| **Phase 1A**（iOS 模拟器 + 标准基座） | **注释掉** | 标准基座 | **本次修复** |
+| Phase 1B（iPhone + 自定义基座） | **打开** | 自定义基座（带 SoundCareHRV 插件） | 走真 HealthKit 代码路径或 mock |
+| Phase 2（iPhone + 自定义基座 + HealthKit） | 打开 | 自定义基座（带 HealthKit framework） | 真 HealthKit |
+
+> 切换时改一行注释即可（或用 git 备份 Phase 1A 的 manifest.json 版本）。
+
+#### 为什么 H5 模拟（Phase 0）能跑通？
+
+H5 走的是浏览器环境，**根本不校验 `app-plus.nativePlugins`**（那是 app 专属配置）。所以 Phase 0 一直能跑。
+
+#### 验证：HBuilderX 控制台怎么看出问题？
+
+如果你在 HBuilderX 底部"控制台"看到类似：
+
+```
+[错误] 找不到插件：SoundCareHRV
+[警告] 当前基座未包含该插件，APP 启动失败
+[App] 启动失败
+```
+
+那就 100% 是这个问题。按上面步骤注释掉 `SoundCareHRV` 即可。
+
+#### 长远方案
+
+Phase 1A 的根本解决：**为 Phase 1A 单独做一个自定义基座**（包含 SoundCareHRV 但不含 HealthKit framework），用这个基座 + 打开插件声明跑模拟器。这样:
+- Phase 1A / 1B / 2 都用对应的自定义基座
+- manifest.json 不用频繁改注释
+- 但要多做一次基座打包（一次性，5-10 分钟）
+
+如果 Phase 1A 要经常跑，建议升级到这个方案。详见 §4.2 + §10。
+
 ---
 
 ## 10. 完整流程 checklist
@@ -846,14 +924,18 @@ ls ~/HBuilderX/plugins/launcher*/packages/*/bases/
 - [ ] Mac 已安装 Xcode 26.3 + HBuilderX 3.95+
 - [ ] git clone + npm install 完成
 - [ ] HBuilderX 打开 app/ 目录成功（首次遇到 §3.5 的 4 个坑按对应说明修）
+- [ ] **临时注释掉 manifest.json 的 SoundCareHRV 声明**（**关键！** 防止标准基座启动白屏，详见 §9 Q9）
 - [ ] HBuilderX → 运行 → 运行到 **iOS 模拟器**（**标准基座**直接可选）
-- [ ] APP 启动，能进入"首页 / 生成 / 播放 / 个人"（这些页可能因后端未启而部分加载失败，**正常**，本阶段不要求）
+- [ ] **APP 正常启动**（**不是**白屏！如果白屏 → 走 §9 Q9 排查）
+- [ ] 能进入"首页 / 生成 / 播放 / 个人"（这些页可能因后端未启而部分加载失败，**正常**，本阶段不要求）
 - [ ] 进入"设备配对"页 → 触发授权（mock 模式不弹系统框）
 - [ ] "测试数据流（5 秒）"按钮能在 5 秒内收到 Mock 事件
 - [ ] 进入"HRV 监测"页 → 启动 → 看到 Mock 数据流（曲线、状态、趋势、BPM 建议）
 - [ ] 停止监测 → 数据流停止
 
 全部勾完 = v1.1 Phase 1A 验证成功 🎉（**Mac 端零证书零后端工作**）
+
+> **Phase 1A 完成后**：恢复 manifest.json 的 SoundCareHRV 声明（取消注释），再去做 Phase 1B（iPhone 真机）。
 
 ### Phase 1B（iPhone 真机 + 自定义基座 + JS Mock，30 分钟，**不需要后端**）
 
