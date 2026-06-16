@@ -908,6 +908,71 @@ Phase 1A 的根本解决：**为 Phase 1A 单独做一个自定义基座**（包
 
 如果 Phase 1A 要经常跑，建议升级到这个方案。详见 §4.2 + §10。
 
+### Q10: iOS 模拟器 HBuilderX base shell 启动了，但页面是白屏 + Safari Console 报 `Origin null is not allowed by Access-Control-Allow-Origin`？
+
+> **2026-06-16 新增**：Mac 端 Phase 1A 第二次踩坑 — manifest.json 的 SoundCareHRV 声明清空后，base shell 装上了、HBuilderX 显示"项目 [app] 已启动"，但模拟器里还是白屏。
+
+#### 原因
+
+**HBuilderX 标准基座用 `file://` 协议加载 Vite build 产物**。Vite 默认输出是：
+
+```html
+<script type="module" crossorigin src="./assets/index-xxx.js"></script>
+<link rel="stylesheet" crossorigin href="./assets/index-xxx.css">
+```
+
+WKWebView 看到 `type="module" crossorigin` 触发 **CORS 预检**：
+- file:// 协议下 origin 是 `null`
+- 加载脚本时浏览器主动发起 CORS 请求，要求响应头有 `Access-Control-Allow-Origin: *`
+- file:// 不可能带这个响应头 → 浏览器**直接拒绝加载**
+- JS 没跑 → Vue 没挂载 → **白屏**
+
+Safari Console 看到的错误就是这个：
+
+```
+[Error] Origin null is not allowed by Access-Control-Allow-Origin. Status code: 0
+[Error] Failed to load resource (index-C5YIdx9h.js, line 0)
+[Error] Failed to load resource (index-DCgw3xNX.css, line 0)
+```
+
+#### 修复（已 commit 进 `vite.config.js`）
+
+加一个 `transformIndexHtml` 插件，**只处理 build 输出**（含 `crossorigin`）：
+
+```js
+{
+  name: 'fix-app-inside-cors',
+  transformIndexHtml: {
+    order: 'post',
+    handler(html) {
+      if (!html.includes('crossorigin')) return html
+      return html
+        .replace(/<script\s+type="module"\s+crossorigin\s+/g, '<script ')
+        .replace(/<link\s+rel="stylesheet"\s+crossorigin\s+/g, '<link rel="stylesheet" ')
+    }
+  }
+}
+```
+
+把 `type="module" crossorigin` → `<script>`，把 `<link ... crossorigin ...>` → 普通 `<link>`。WKWebView 按 classic 资源加载，**不做 CORS 预检**，直接拉文件。
+
+**dev server 不受影响**（dev server 的 HTML 不含 `crossorigin`，`html.includes('crossorigin')` 为 false，跳过处理）。
+
+**Phase 1A 用户无需任何额外操作** — 拉最新代码 (`git pull`) 就行。修复已在 commit `64fbb2f`。
+
+#### 验证
+
+修复后再跑一次，Safari Console 应该**不再有 CORS 错误**。如果还有：
+1. `git pull` 拉最新代码了吗？
+2. HBuilderX 完整重启了吗？（视图 → 显示项目管理器 → 关闭 app 项目 → 重新打开）
+3. 模拟器里的 HBuilder base 应用手动关掉重开了吗？
+
+#### 长远方案
+
+同 Q9 — **为 Phase 1A 单独做一个自定义基座**。自定义基座可以内嵌一个 `localhost:PORT` 的 HTTP 服务器，用 http:// 加载而不是 file://，从根上避免 file:// CORS 问题。但这要求基座打包，多花 5-10 分钟。
+
+短期 Phase 1A/1B 调试用这个 vite.config.js 修法就够。
+
 ---
 
 ## 10. 完整流程 checklist
@@ -945,10 +1010,11 @@ Phase 1A 的根本解决：**为 Phase 1A 单独做一个自定义基座**（包
 
 - [ ] Mac 已安装 Xcode 26.3 + HBuilderX 3.95+
 - [ ] git clone + npm install 完成
+- [ ] **确认 `app/vite.config.js` 包含 `fix-app-inside-cors` 插件**（git pull 最新代码就有了，详见 §9 Q10）
 - [ ] HBuilderX 打开 app/ 目录成功（首次遇到 §3.5 的 4 个坑按对应说明修）
 - [ ] **临时注释掉 manifest.json 的 SoundCareHRV 声明**（**关键！** 防止标准基座启动白屏，详见 §9 Q9）
 - [ ] HBuilderX → 运行 → 运行到 **iOS 模拟器**（**标准基座**直接可选）
-- [ ] **APP 正常启动**（**不是**白屏！如果白屏 → 走 §9 Q9 排查）
+- [ ] **APP 正常启动**（**不是**白屏！如果白屏 → 先看 Safari Console，§9 Q9 / Q10）
 - [ ] 能进入"首页 / 生成 / 播放 / 个人"（这些页可能因后端未启而部分加载失败，**正常**，本阶段不要求）
 - [ ] 进入"设备配对"页 → 触发授权（mock 模式不弹系统框）
 - [ ] "测试数据流（5 秒）"按钮能在 5 秒内收到 Mock 事件
