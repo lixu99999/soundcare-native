@@ -30,6 +30,7 @@ iOS HRV 原生插件开发。
   - **Q8 新增：HBuilderX 编译产物位置**（2026-06-15）：HBuilderX GUI 输出在 `app/unpackage/`（H5 / app-plus / IPA），CLI (`npm run dev`) 输出在 `app/dist/`；自定义基座 .ipa 在 HBuilderX 插件目录（控制台打印或 `find ~/HBuilderX -name "*SoundCare*.ipa"`）
   - **Q8 修正 + Q9 新增**（2026-06-16）：Q8 写 `app/unpackage/` 是错的 — 3.95+ alpha + Vite GUI 编译产物不在项目目录。Q9 新增：iOS 模拟器白屏 = manifest.json 声明的 SoundCareHRV 原生插件标准基座没带，HBuilderX 严格校验失败。Q6 的 `xcrun devicectl enable-developer-mode` 移除（Xcode 26.3 不支持，需 Xcode 27+）
   - **Q9 落地 + Phase 1A manifest.json 修复**（2026-06-16）：JSON 不支持 `//` 注释，正确做法是 `app/src/manifest.json` 把 `nativePlugins` 清成 `{}`（已 commit `5d2d97b`），有 SoundCareHRV 声明的版本备份成 `app/src/manifest.json.phase1b`，Mac 端 `git pull` 后用 `cp manifest.json.phase1b manifest.json` 切换 Phase 1B/2
+  - **pages.json 修复**（2026-06-16）：缺 `"vueVersion": "3"`（manifest 有但 pages 没有，编译器走 Vue 2 路径，`createSSRApp` 不识别 → 白屏）；`tabBar.fontSize/iconWidth` 是字符串带 "px"（应该是数字）。修复后 Phase 1A 应该跑通
 - ⏸ **Mac 端待用户执行**：Phase 1A（模拟器 + 标准基座，零证书零后端）→ Phase 1B（iPhone + 自定义基座 + 免费 Apple ID，仍零后端）→ Phase 2（付费 + 自定义基座 + 真 HealthKit + 后端）
 - ⏸ v1.2：player 接入 startHRVSession（963 行，重构风险高）
 - ⏸ v2.0：付费 Apple Developer + 自定义基座 + 真 HealthKit（可选升级）

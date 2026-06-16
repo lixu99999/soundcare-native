@@ -1,4 +1,5 @@
 {
+  "vueVersion": "3",
   "pages": [
     {
       "path": "pages/index/index",
@@ -62,8 +63,8 @@
     "selectedColor": "#FF6B00",
     "backgroundColor": "#1a1a2e",
     "borderStyle": "black",
-    "fontSize": "14px",
-    "iconWidth": "22px",
+    "fontSize": "14",
+    "iconWidth": 22,
     "list": [
       {
         "pagePath": "pages/index/index",
