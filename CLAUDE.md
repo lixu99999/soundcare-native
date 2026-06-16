@@ -32,7 +32,10 @@ iOS HRV 原生插件开发。
   - **Q9 落地 + Phase 1A manifest.json 修复**（2026-06-16）：JSON 不支持 `//` 注释，正确做法是 `app/src/manifest.json` 把 `nativePlugins` 清成 `{}`（已 commit `5d2d97b`），有 SoundCareHRV 声明的版本备份成 `app/src/manifest.json.phase1b`，Mac 端 `git pull` 后用 `cp manifest.json.phase1b manifest.json` 切换 Phase 1B/2
   - **pages.json 修复**（2026-06-16）：缺 `"vueVersion": "3"`（manifest 有但 pages 没有，编译器走 Vue 2 路径，`createSSRApp` 不识别 → 白屏）；`tabBar.fontSize/iconWidth` 是字符串带 "px"（应该是数字）。修复后 Phase 1A 应该跑通
   - **manifest.json 进一步修复**（2026-06-16）：1) `splashscreen.alwaysShowBeforeRender: true` → false（如果 Vue 挂载失败启动图永远不关，伪装成白屏）2) `nvueStyleCompiler: "uni-app"` → "vue3"（Vue 3 下应该是 vue3，不是 uni-app）
-- ⏸ **Mac 端待用户执行**：Phase 1A（模拟器 + 标准基座，零证书零后端）→ Phase 1B（iPhone + 自定义基座 + 免费 Apple ID，仍零后端）→ Phase 2（付费 + 自定义基座 + 真 HealthKit + 后端）
+  - **CORS 白屏根因 + 修复**（2026-06-16，commit `64fbb2f`）：Safari Console 抓到真凶 — `Origin null is not allowed by Access-Control-Allow-Origin`。HBuilderX 标准基座用 file:// 加载 Vite build 产物，Vite 默认 `<script type="module" crossorigin>` 触发 CORS 预检，file:// origin 是 null → JS/CSS 全部拒绝加载 → 白屏。修复：vite.config.js 加 transformIndexHtml 插件，build 输出（识别 crossorigin）自动去除 script 的 type="module" 和 link 的 crossorigin，让 WKWebView 按 classic 资源加载。dev server 不受影响
+  - **Mac集成指南 Q10 记录 CORS 死锁**（2026-06-16，commit `886a765`）：Q9 是 manifest 声明导致 base 不启动；Q10 是 base 启动了但 file:// CORS 让 JS 跑不起来。两个白屏看起来一样，要靠 Safari Console 区分
+  - **HBuilderX "已存在同名项目" 状态恢复**（2026-06-16）：视图 → 显示项目管理器 → 关闭原项目。比 rm ~/Library 各种路径都直接（已记 memory）
+- ⏸ **Mac 端待用户执行**：Phase 1A 重新跑通（git pull 后 vite.config.js 修复生效）→ Phase 1B（iPhone + 自定义基座 + 免费 Apple ID）→ Phase 2（付费 + 自定义基座 + 真 HealthKit + 后端）
 - ⏸ v1.2：player 接入 startHRVSession（963 行，重构风险高）
 - ⏸ v2.0：付费 Apple Developer + 自定义基座 + 真 HealthKit（可选升级）
 
