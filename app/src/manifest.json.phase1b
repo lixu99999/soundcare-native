@@ -1,7 +1,7 @@
 {
   "name": "SoundCare",
   "appid": "__UNI__SOUNDCARE_NATIVE",
-  "description": "SoundCare HRV Native APP",
+  "description": "SoundCare HRV Native APP (Phase 1B/2 manifest — has SoundCareHRV plugin)",
   "versionName": "1.0.0",
   "versionCode": "100",
   "transformPx": false,
@@ -17,7 +17,11 @@
       "delay": 0
     },
     "modules": {},
-    "nativePlugins": {},
+    "nativePlugins": {
+      "SoundCareHRV": {
+        "version": "1.0.0"
+      }
+    },
     "distribute": {
       "android": {
         "permissions": [

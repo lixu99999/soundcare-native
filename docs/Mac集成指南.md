@@ -826,20 +826,18 @@ manifest.json 现在的样子（关键部分）：
 }
 ```
 
-#### 修复：Phase 1A 临时注释掉 SoundCareHRV 声明
+#### 修复：Phase 1A 临时把 `nativePlugins` 改成空
 
-`app/src/manifest.json` 改成：
+> **注意**：JSON 不支持 `//` 注释，所以不能用注释的方式"软禁用"。正确做法是直接清成空对象 `{}`。
+>
+> 我已经帮你改好了（commit 见 git log），并且把"有 SoundCareHRV 声明"的版本备份成了 `app/src/manifest.json.phase1b`。
+
+**当前 `app/src/manifest.json` 状态**：
 
 ```json
 {
   "app-plus": {
-    "nativePlugins": {
-      // Phase 1A (模拟器 + 标准基座) 临时注释掉，标准基座没有这个插件
-      // Phase 1B/2 (iPhone + 自定义基座) 重新打开
-      // "SoundCareHRV": {
-      //   "version": "1.0.0"
-      // }
-    }
+    "nativePlugins": {}      ← 空对象，HBuilderX 不校验任何插件
   }
 }
 ```
@@ -850,16 +848,40 @@ manifest.json 现在的样子（关键部分）：
 - `hrv-plugin.js` 走 mock fallback 分支 → 5 秒一帧 mock 数据
 - **HRV 监测页 / 设备配对页 全部跑通**（用 JS mock）
 
+#### Phase 切换怎么操作？
+
+切到 Phase 1B/2（iPhone 真机）：
+
+```bash
+cd ~/code/soundcare-native/app/src
+
+# 备份当前的 Phase 1A 版本（可选，git 也能恢复）
+cp manifest.json manifest.json.phase1a
+
+# 用 Phase 1B 版本（带 SoundCareHRV 声明）替换
+cp manifest.json.phase1b manifest.json
+
+# 在 HBuilderX 中重新"运行到 iPhone 真机"（需要先做自定义基座，§4.2）
+```
+
+切回 Phase 1A（模拟器）：
+
+```bash
+cd ~/code/soundcare-native/app/src
+cp manifest.json.phase1a manifest.json
+# 在 HBuilderX 中重新"运行到 iOS 模拟器"
+```
+
 #### Phase 切换时怎么改回？
 
 | 阶段 | SoundCareHRV 声明 | 基座 | 备注 |
 |------|-------------------|------|------|
-| Phase 0（H5 模拟） | 注释掉 | 不需要基座 | H5 走 mock fallback |
-| **Phase 1A**（iOS 模拟器 + 标准基座） | **注释掉** | 标准基座 | **本次修复** |
-| Phase 1B（iPhone + 自定义基座） | **打开** | 自定义基座（带 SoundCareHRV 插件） | 走真 HealthKit 代码路径或 mock |
-| Phase 2（iPhone + 自定义基座 + HealthKit） | 打开 | 自定义基座（带 HealthKit framework） | 真 HealthKit |
+| Phase 0（H5 模拟） | 空 | 不需要基座 | H5 走 mock fallback |
+| **Phase 1A**（iOS 模拟器 + 标准基座） | **空**（`nativePlugins: {}`） | 标准基座 | **本次修复** |
+| Phase 1B（iPhone + 自定义基座） | **有**（用 `manifest.json.phase1b` 覆盖） | 自定义基座（带 SoundCareHRV 插件） | 走真 HealthKit 代码路径或 mock |
+| Phase 2（iPhone + 自定义基座 + HealthKit） | 有 | 自定义基座（带 HealthKit framework） | 真 HealthKit |
 
-> 切换时改一行注释即可（或用 git 备份 Phase 1A 的 manifest.json 版本）。
+> 切换用 `cp manifest.json.phase1b manifest.json` 即可，git 也保留了所有历史。
 
 #### 为什么 H5 模拟（Phase 0）能跑通？
 
