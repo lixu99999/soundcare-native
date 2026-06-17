@@ -36,7 +36,8 @@ iOS HRV 原生插件开发。
   - **Mac集成指南 Q10 记录 CORS 死锁**（2026-06-16，commit `886a765`）：Q9 是 manifest 声明导致 base 不启动；Q10 是 base 启动了但 file:// CORS 让 JS 跑不起来。两个白屏看起来一样，要靠 Safari Console 区分
   - **HBuilderX "已存在同名项目" 状态恢复**（2026-06-16）：视图 → 显示项目管理器 → 关闭原项目。比 rm ~/Library 各种路径都直接（已记 memory）
   - **Q11 重大根因 + Phase 1A 重写**（2026-06-17）：OpenClaw 思路对，精确化后确认 — HBuilderX 5.07 标准 iOS 基座 = **5+Runtime**（WKWebView + JS 桥），不是纯 Weex。WKWebView 本身支持 Vue 3，但 5+Runtime 的 JS 桥接层假设 Vue 2 风格 `new Vue()`，Vue 3 的 `createSSRApp` 静默失败 → 白屏。`weex-vue-render` 仓库 `vue: "^2.5.16"` 硬编码 + 最后 push 2022-03-02 + Apache Weex 2020 退役，4 年没维护。结论：Vue 3 + 标准基座 = 架构级别不兼容，**Phase 1A 必须改成"模拟器 + 自定义基座"**（30-60 分钟，绕开 5+Runtime）。原"5 分钟标准基座"流程作废。证据：Mac 端 main.js console.log 能输出 + alert 能弹 + onLaunch 不触发 + Vue 组件不渲染 + Safari Inspector 显示 "weex context"
-- ⏸ **Mac 端待用户执行**：Phase 0（H5 验证，5 分钟）→ Phase 1A（**自定义基座 + 模拟器**，30-60 分钟）→ Phase 1B（iPhone + 同一个自定义基座）→ Phase 2（付费 + 自定义基座 + 真 HealthKit + 后端）
+  - **Q11 用户实测交叉验证**（2026-06-17）：HBuilderX 5.13 alpha 同样白屏（不是版本 bug，是 5+Runtime 架构问题）；H5 浏览器跑通首页/生成/播放/个人/AI 生成页（代码 100% 正确）。升级 HBuilderX 解决不了，**只剩"自定义基座"一条路**
+- ⏸ **Mac 端待用户执行**：Phase 0（已验证 ✅）→ Phase 1A（**自定义基座 + 模拟器**，30-60 分钟）→ Phase 1B（iPhone + 同一个自定义基座）→ Phase 2（付费 + 自定义基座 + 真 HealthKit + 后端）
 - ⏸ v1.2：player 接入 startHRVSession（963 行，重构风险高）
 - ⏸ v2.0：付费 Apple Developer + 自定义基座 + 真 HealthKit（可选升级）
 

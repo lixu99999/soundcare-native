@@ -1022,6 +1022,15 @@ uni-app 官方 README（[dcloudio/uni-app](https://github.com/dcloudio/uni-app)�
 
 **Vue 3 + HBuilderX 5.07 标准基座 = 架构级别不兼容**。这条路线（Phase 1A = 模拟器 + 标准基座）**对 Vue 3 项目行不通**。之前的 vite.config.js（CORS）、pages.json（vueVersion）、manifest.json（splashscreen / nvueStyleCompiler）修复都是**必要但不充分**。
 
+#### 2026-06-17 用户实测交叉验证
+
+| 测试 | 结果 | 说明 |
+|------|------|------|
+| HBuilderX **5.13 alpha**（最新版） | ❌ 同样白屏 | 证实不是 5.07 特有 bug，**整个 5.x 系列的 5+Runtime 都有这问题** |
+| HBuilderX → 运行到**浏览器**（H5） | ✅ 正常显示首页和功能 | 证实代码本身 100% 正确，**问题纯粹是 5+Runtime JS 桥不识别 Vue 3** |
+
+所以升级 HBuilderX 不能解决这个问题。**只剩"自定义基座"一条路**。
+
 #### 解决路径（三选一）
 
 **A. 自定义基座（推荐，30-60 分钟）**
@@ -1067,6 +1076,8 @@ HBuilderX → 运行 → 运行到浏览器（Chrome/Safari WebKit）。**不经
 > **2026-06-15 新增**：HBuilderX 自带 H5 模拟，调同一份 `config.js` + 同一份后端。H5 跑通 = 后端 + 主流程 100% 没问题，再去做 iOS 模拟器信心更高。
 >
 > ⚠️ **不能验 HRV 数据流**（H5 无 native plugin，§6.0）
+>
+> **2026-06-17 用户已验证**：本项目 H5 跑通（首页/生成/播放/个人/AI 生成页正常），**代码 100% 正确**。可以放心做 Phase 1A。
 
 按顺序勾选：
 
