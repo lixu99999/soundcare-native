@@ -35,9 +35,9 @@ iOS HRV 原生插件开发。
   - **CORS 白屏根因 + 修复**（2026-06-16，commit `64fbb2f`）：Safari Console 抓到真凶 — `Origin null is not allowed by Access-Control-Allow-Origin`。HBuilderX 标准基座用 file:// 加载 Vite build 产物，Vite 默认 `<script type="module" crossorigin>` 触发 CORS 预检，file:// origin 是 null → JS/CSS 全部拒绝加载 → 白屏。修复：vite.config.js 加 transformIndexHtml 插件，build 输出（识别 crossorigin）自动去除 script 的 type="module" 和 link 的 crossorigin，让 WKWebView 按 classic 资源加载。dev server 不受影响
   - **Mac集成指南 Q10 记录 CORS 死锁**（2026-06-16，commit `886a765`）：Q9 是 manifest 声明导致 base 不启动；Q10 是 base 启动了但 file:// CORS 让 JS 跑不起来。两个白屏看起来一样，要靠 Safari Console 区分
   - **HBuilderX "已存在同名项目" 状态恢复**（2026-06-16）：视图 → 显示项目管理器 → 关闭原项目。比 rm ~/Library 各种路径都直接（已记 memory）
-  - **Q11 重大根因 + Phase 1A 重写**（2026-06-17）：OpenClaw 思路对，精确化后确认 — HBuilderX 5.07 标准 iOS 基座 = **5+Runtime**（WKWebView + JS 桥），不是纯 Weex。WKWebView 本身支持 Vue 3，但 5+Runtime 的 JS 桥接层假设 Vue 2 风格 `new Vue()`，Vue 3 的 `createSSRApp` 静默失败 → 白屏。`weex-vue-render` 仓库 `vue: "^2.5.16"` 硬编码 + 最后 push 2022-03-02 + Apache Weex 2020 退役，4 年没维护。结论：Vue 3 + 标准基座 = 架构级别不兼容，**Phase 1A 必须改成"模拟器 + 自定义基座"**（30-60 分钟，绕开 5+Runtime）。原"5 分钟标准基座"流程作废。证据：Mac 端 main.js console.log 能输出 + alert 能弹 + onLaunch 不触发 + Vue 组件不渲染 + Safari Inspector 显示 "weex context"
-  - **Q11 用户实测交叉验证**（2026-06-17）：HBuilderX 5.13 alpha 同样白屏（不是版本 bug，是 5+Runtime 架构问题）；H5 浏览器跑通首页/生成/播放/个人/AI 生成页（代码 100% 正确）。升级 HBuilderX 解决不了，**只剩"自定义基座"一条路**
-- ⏸ **Mac 端待用户执行**：Phase 0（已验证 ✅）→ Phase 1A（**自定义基座 + 模拟器**，30-60 分钟）→ Phase 1B（iPhone + 同一个自定义基座）→ Phase 2（付费 + 自定义基座 + 真 HealthKit + 后端）
+  - **Q11 重大根因 + Phase 1A 重写**（2026-06-17，已被证伪）：OpenClaw 思路一度被认为对，结论"HBuilderX 5.07 标准 iOS 基座 = 5+Runtime 不支持 Vue 3"。**已被证伪** — 用户用 HBuilderX 新建项目时，Vue 版本选择缺省就是 Vue 3，**5+Runtime 官方支持 Vue 3**。之前把"weex context 进程名 + weex-vue-render H5 仓库 Vue 2 硬编码"当 5+Runtime 不支持 Vue 3 的证据是**过度推断**（weex-vue-render 是 H5 渲染器，跟 iOS 原生基座 JS 引擎不是一回事）。Q9/Q10/Q11 修复 commit 保留（无害修复），但**不是根因修复**
+  - **Q11 修正后真正方向**（2026-06-17）：白屏是**我们项目配置问题**，不是 5+Runtime 架构问题。Phase 1A 恢复"5 分钟标准基座"流程。**真正下一步**：HBuilderX → 新建项目 → uni-app（Vue 3）→ 默认模板 → 运行到 iOS 模拟器（对照组测试），默认模板能跑通 = diff 默认模板 vs 我们项目配置找出差异；默认模板也白屏 = 5+Runtime 真有 bug 再走自定义基座
+- ⏸ **Mac 端待用户执行**：Phase 0（已验证 ✅）→ Phase 1A（标准基座 + 模拟器，5 分钟，需先做对照组测试定位配置差异）→ Phase 1B（iPhone + 自定义基座）→ Phase 2（付费 + 自定义基座 + 真 HealthKit + 后端）
 - ⏸ v1.2：player 接入 startHRVSession（963 行，重构风险高）
 - ⏸ v2.0：付费 Apple Developer + 自定义基座 + 真 HealthKit（可选升级）
 

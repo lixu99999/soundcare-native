@@ -975,7 +975,11 @@ Safari Console 看到的错误就是这个：
 
 ### Q11: iOS 模拟器标准基座白屏，所有 vue 配置都对、CORS 修了、main.js 也执行了（console.log 能打出来）但页面就是空白
 
-> **2026-06-17 新增（重大）**：Mac 端 Phase 1A 第三次踩坑，**这是真正的根因**。Q9（manifest 声明）、Q10（file:// CORS）都是次要因素。
+> **2026-06-17 重大修正（自我推翻）**：Mac 端 Phase 1A 第三次踩坑后，我曾下结论"HBuilderX 标准 iOS 基座 = 5+Runtime 不支持 Vue 3"。**这个结论被证伪了**——用户用 HBuilderX 新建项目时，**Vue 版本选择缺省就是 Vue 3**。如果标准基座真的不支持 Vue 3，DCloud 不可能把 Vue 3 设为新建项目的默认值。
+>
+> 之前把"weex context 进程名 + weex-vue-render H5 仓库 Vue 2 硬编码 + H5 跑通 iOS 不通"当作 5+Runtime 不支持 Vue 3 的证据链，**是过度推断**。真实情况大概率是：**我们项目有某个具体配置问题**（manifest.json / pages.json / vite.config.js / App.vue / main.js 某处），不是 5+Runtime 架构问题。
+>
+> Q9 / Q10 / Q11 的"修法"（manifest 清声明 / vite.config.js CORS / 建议做自定义基座）**作为流程记录保留**，但**根因定位是错的**。本节作为反面教材保留，避免未来再下类似过度推断。
 
 #### 背景：HBuilderX 标准 iOS 基座到底是什么？
 
@@ -1095,18 +1099,33 @@ WKWebView 本身**完全能跑 Vue 3**（你 H5 验证过）。问题**只在 5+
 
 最后 push：2022-03-02，**已经 4 年没维护**（Apache Weex 2020 年退役进 Attic）。
 
-#### 结论
+#### 结论（已修正）
 
-**Vue 3 + HBuilderX 5.07 标准基座 = 架构级别不兼容**。这条路线（Phase 1A = 模拟器 + 标准基座）**对 Vue 3 项目行不通**。之前的 vite.config.js（CORS）、pages.json（vueVersion）、manifest.json（splashscreen / nvueStyleCompiler）修复都是**必要但不充分**。
+**❌ 旧结论**（错误）：Vue 3 + HBuilderX 5.07 标准基座 = 架构级别不兼容 → 必须做自定义基座
+
+**✅ 新结论**：HBuilderX 5.07/5.13 标准 iOS 基座**官方支持 Vue 3**（新建项目默认 Vue 3）。白屏是**我们项目的具体配置问题**，不是 5+Runtime 架构问题。
+
+**应该做的事**：
+1. HBuilderX → 新建项目 → uni-app（Vue 3）→ 默认模板 → 运行到 iOS 模拟器（**对照组测试，5 分钟**）
+2. 如果默认模板跑通 → 回头 diff 我们项目 vs 默认模板的 manifest.json / pages.json / main.js / App.vue / vite.config.js，找出差异
+3. 如果默认模板也白屏 → 那才是 5+Runtime 真的有问题，再考虑自定义基座（**这才是真要做的判断点**）
+
+之前 vite.config.js（CORS）、pages.json（vueVersion）、manifest.json（splashscreen / nvueStyleCompiler）修复的 commit **保留**（无害修复），但**不是根因修复**。
 
 #### 2026-06-17 用户实测交叉验证
 
 | 测试 | 结果 | 说明 |
 |------|------|------|
-| HBuilderX **5.13 alpha**（最新版） | ❌ 同样白屏 | 证实不是 5.07 特有 bug，**整个 5.x 系列的 5+Runtime 都有这问题** |
-| HBuilderX → 运行到**浏览器**（H5） | ✅ 正常显示首页和功能 | 证实代码本身 100% 正确，**问题纯粹是 5+Runtime JS 桥不识别 Vue 3** |
+| HBuilderX **5.13 alpha**（最新版） | ❌ 同样白屏 | 不是 5.07 特有 bug |
+| HBuilderX → 运行到**浏览器**（H5） | ✅ 正常显示首页和功能 | 证实代码本身 100% 正确 |
 
-所以升级 HBuilderX 不能解决这个问题。**只剩"自定义基座"一条路**。
+#### 2026-06-17 自我推翻（重大修正）
+
+用户用 HBuilderX 新建 uni-app 项目时发现：**Vue 版本选择缺省就是 Vue 3**。
+
+这直接证伪了"HBuilderX 标准基座不支持 Vue 3"的强结论。如果不支持，DCloud 不会把 Vue 3 设为新建项目的默认值。**5+Runtime 跟 Vue 3 兼容，官方支持**。
+
+**正确的下一步**：HBuilderX → 新建项目 → uni-app（Vue 3）→ 不改任何代码 → 运行到 iOS 模拟器，**看默认模板能否跑通**。如果能跑通 = 我们项目某个配置错了；如果不能跑通 = 5+Runtime 确实有 Vue 3 bug，再走"自定义基座"。
 
 #### 解决路径（三选一）
 
@@ -1142,11 +1161,11 @@ HBuilderX → 运行 → 运行到浏览器（Chrome/Safari WebKit）。**不经
 
 ## 10. 完整流程 checklist
 
-> **2026-06-17 重大修订**：HBuilderX 5.07 **标准基座不支持 Vue 3**（§9 Q11），Phase 1A 必须用**自定义基座**。原"模拟器 + 标准基座 5 分钟跑通"流程**已作废**。
+> **2026-06-17 重大修正**：之前误判"HBuilderX 5.07 标准基座不支持 Vue 3"已证伪 — 新建项目缺省就是 Vue 3，**Phase 1A 仍然是"模拟器 + 标准基座 5 分钟跑通"**。Q11 作为反面教材保留（避免未来过度推断）。
 >
 > **后端依赖**：Phase 1A/1B 的 HRV 数据流测试**不需要** Python 后端（§6.0）；播放页 / 生成页 / 首页 / 个人页 才需要。
 >
-> **推荐流程**：**Phase 0（H5 模拟预验证，需后端）→ Phase 1A（iOS 模拟器 + 自定义基座，30-60 分钟）→ Phase 1B（iPhone 真机 + 同一个自定义基座）**。
+> **推荐流程**：**Phase 0（H5 模拟预验证，需后端）→ Phase 1A（iOS 模拟器 + 标准基座，5 分钟）→ Phase 1B（iPhone 真机 + 自定义基座）**。
 
 ### Phase 0（H5 模拟预验证，5 分钟，**需要后端**）
 
@@ -1169,19 +1188,19 @@ HBuilderX → 运行 → 运行到浏览器（Chrome/Safari WebKit）。**不经
 
 全部勾完 = v1.1 Phase 0 验证成功 🎉（**后端 + 主流程 100% OK**）
 
-### Phase 1A（模拟器 + 自定义基座 + JS Mock，30-60 分钟，**不需要后端**）
+### Phase 1A（模拟器 + 标准基座 + JS Mock，5 分钟，**不需要后端**）
 
-> **2026-06-17 重大修订**：HBuilderX 5.07 **标准基座不支持 Vue 3**（Q11）。Phase 1A 必须用**自定义基座**。自定义基座 = 重新打 .ipa 含 uni-app runtime + Vue 3 + WKWebView，**绕过 5+Runtime JS 桥**。流程等同于"模拟器版 Phase 1B"。
+> **2026-06-17 重大修正**：之前我误判"HBuilderX 5.07 标准基座不支持 Vue 3"，已证伪 — 新建项目缺省就是 Vue 3。**Phase 1A 仍是"模拟器 + 标准基座"**，5 分钟零证书零后端。
 
 按顺序勾选：
 
-- [ ] **Phase 0 全部勾完**（H5 验证通过）
-- [ ] 自己的免费 Apple ID 已登录 Xcode（§4.0.5）
-- [ ] Xcode 已为该 Apple ID 生成 "Apple Development" 证书
-- [ ] HBuilderX → 制作自定义调试基座（**不**勾选 HealthKit，§4.2）
-- [ ] iOS 模拟器已启动（任一 iPhone）
-- [ ] HBuilderX → 运行到 **iOS 模拟器**（**自定义基座**）
-- [ ] **APP 正常启动**（**不是**白屏！如果白屏 → §9 Q11 排查）
+- [ ] Mac 已安装 Xcode 26.3 + HBuilderX 3.95+
+- [ ] git clone + npm install 完成
+- [ ] **确认 `app/vite.config.js` 包含 `fix-app-inside-cors` 插件**（git pull 最新代码就有了，详见 §9 Q10）
+- [ ] HBuilderX 打开 app/ 目录成功（首次遇到 §3.5 的 4 个坑按对应说明修）
+- [ ] **临时注释掉 manifest.json 的 SoundCareHRV 声明**（**关键！** 防止标准基座启动白屏，详见 §9 Q9）
+- [ ] HBuilderX → 运行 → 运行到 **iOS 模拟器**（**标准基座**直接可选）
+- [ ] **APP 正常启动**（**不是**白屏！如果白屏 → 先看 Safari Console，§9 Q9 / Q10；如果新发现的现象不在 Q9/Q10 范围 → §9 Q11 末段"对照组测试"流程）
 - [ ] 能进入"首页 / 生成 / 播放 / 个人"（这些页可能因后端未启而部分加载失败，**正常**，本阶段不要求）
 - [ ] 进入"设备配对"页 → 触发授权（mock 模式不弹系统框）
 - [ ] "测试数据流（5 秒）"按钮能在 5 秒内收到 Mock 事件
@@ -1190,7 +1209,9 @@ HBuilderX → 运行 → 运行到浏览器（Chrome/Safari WebKit）。**不经
 
 全部勾完 = v1.1 Phase 1A 验证成功 🎉（**Mac 端零证书零后端工作**）
 
-> **Phase 1A 完成后**：自定义基座留着，Phase 1B 真机复用同一个基座。
+> **Phase 1A 完成后**：恢复 manifest.json 的 SoundCareHRV 声明（取消注释），再去做 Phase 1B（iPhone 真机）。
+
+> **如果白屏但 Q9/Q10 都查不到原因**：做 §9 Q11 末段的"对照组测试" — HBuilderX → 新建项目 → uni-app（Vue 3）→ 默认模板 → 运行到 iOS 模拟器，看默认模板能否跑通。能跑 = 我们项目配置错了；不能跑 = 5+Runtime 真有 Vue 3 bug，再走自定义基座。
 
 ### Phase 1B（iPhone 真机 + 自定义基座 + JS Mock，30 分钟，**不需要后端**）
 
