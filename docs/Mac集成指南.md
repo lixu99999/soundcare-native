@@ -979,16 +979,93 @@ Safari Console 看到的错误就是这个：
 
 #### 背景：HBuilderX 标准 iOS 基座到底是什么？
 
-不是纯 Weex，而是 **5+Runtime**：
-- 渲染层：**WKWebView**（Chrome 同源 web 引擎，支持 ES2020+ / Vue 3 本身）
-- JS 桥层：**uni-app x 的前身**（从 5+/Weex 时代演化来，Safari Inspector 里仍叫 "weex context"）
-- 负责把 `createApp()` 接到 `Vue 2` 风格的运行时，**这是关键**
+不是纯 Weex，而是 **5+Runtime**（DCloud 移动端 App 运行时引擎）：
+
+```
+┌─────────────────────────────────────────────────┐
+│  5+Runtime (DCloud 移动端运行时)                  │
+├─────────────────────────────────────────────────┤
+│                                                  │
+│  ┌──────────────┐    ┌────────────────────┐    │
+│  │  原生壳子     │    │  WKWebView          │    │
+│  │  (iOS/Android)│    │  (渲染你的 Vue 代码) │    │
+│  │              │    │                     │    │
+│  │  - 安装/启动  │◀──▶│  - HTML/CSS/JS      │    │
+│  │  - 状态栏     │    │  - Vue 运行时       │    │
+│  │  - 推送/分享  │    │                     │    │
+│  └──────────────┘    └────────────────────┘    │
+│         ▲                      ▲                │
+│         │     JS 桥 (uni.* API)│                │
+│         └──────────────────────┘                │
+│                                                  │
+└─────────────────────────────────────────────────┘
+```
+
+**核心组件**：
+
+| 层 | 作用 | 类比 |
+|---|------|------|
+| **原生壳子** | iOS/Android 容器，让 Web 代码能装到 App Store | 手机的"系统框架" |
+| **WKWebView** | 实际的网页渲染引擎（Chrome 同源） | 浏览器 |
+| **JS 桥** | 把 `uni.showToast()` / `uni.getLocation()` 这类调用转成原生调用 | RPC |
+| **uni-app 框架** | Vue 语法 + uni-app API + 页面路由 | 小程序框架的 Web 版 |
+
+**"weex context" 名字哪来的**：5+Runtime 的 JS 引擎底层是 **JavaScriptCore**（苹果的 JS 引擎），最初从 [Apache Weex](https://github.com/apache/incubator-weex) 项目演化来的。Weex 是阿里 2016 年开源的"用 Vue 写原生 App"框架，**2018 年捐给 Apache，2020 年退役进 Attic**。5+Runtime 用了 Weex 的 JS 引擎部分 + DCloud 自己开发的 JS 桥。Safari Inspector 显示的"weex context"是 5+Runtime 内部进程名，是历史遗留标签，**不代表现在还在用 Weex 的全部**。
 
 uni-app 官方 README（[dcloudio/uni-app](https://github.com/dcloudio/uni-app)）明确说：
 
 > uni-app：基于前端技术栈，App 引擎采用与小程序相同的技术架构，**逻辑层使用 js，渲染层使用 web-view**。
 
 所以 "标准基座不支持 Vue 3" 这个说法更准确是：**WKWebView 完全支持 Vue 3，但 5+Runtime 的 JS 桥接层假设项目是 Vue 2 写的**。
+
+#### 为什么 Vue 3 跑不起来（5+Runtime 桥接层代码逻辑）
+
+5+Runtime 的 JS 桥（uni-app 框架）里有这样一段：
+
+```js
+// 5+Runtime 假设项目是 Vue 2 写的
+import Vue from 'vue'
+new Vue({
+  // ... 处理 onLaunch / onShow / onHide
+  // ... 挂载到 #app
+})
+```
+
+它**认 `new Vue()` 这个 API**。而你的项目是 Vue 3 写的：
+
+```js
+// 你的 main.js
+import { createSSRApp } from 'vue'
+export function createApp() {
+  return { app: createSSRApp(App) }   // ← Vue 3 新 API
+}
+```
+
+5+Runtime 的 JS 桥看到 `createSSRApp` **完全不知道这是啥**：
+- 找不到要挂载的根实例
+- 找不到要处理的生命周期
+- **不抛错**（5+Runtime 错误处理是 noop，静默吞掉）
+- 结果：Vue 没挂载 → DOM 是空 → 白屏
+
+WKWebView 本身**完全能跑 Vue 3**（你 H5 验证过）。问题**只在 5+Runtime 的 JS 桥那层**。
+
+#### 怎么绕开（自定义基座原理图）
+
+```
+标准基座:  ┌────────────┐    ┌────────────┐
+          │ 5+Runtime  │───▶│ 你的代码    │   ← JS 桥拦腰一刀
+          │ JS 桥 (Vue2)│    │ (Vue 3)   │
+          └────────────┘    └────────────┘
+              失败 ❌
+
+自定义基座:┌────────────┐    ┌────────────┐
+          │ WKWebView  │───▶│ 你的代码    │   ← 没有 JS 桥
+          │ (纯 web)   │    │ (Vue 3)   │
+          └────────────┘    └────────────┘
+              成功 ✅
+```
+
+**代价**：自定义基座**没有 `uni.*` 的原生能力**（推送、定位、扫码、HealthKit 都需要原生插件）。所以 Phase 1A 用普通自定义基座验 Vue 3 跑通，Phase 2 才做带 HealthKit 的自定义基座。
 
 #### 关键证据（你能在自己机器上验证）
 
