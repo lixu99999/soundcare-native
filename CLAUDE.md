@@ -37,14 +37,7 @@ iOS HRV 原生插件开发。
   - **HBuilderX "已存在同名项目" 状态恢复**（2026-06-16）：视图 → 显示项目管理器 → 关闭原项目。比 rm ~/Library 各种路径都直接（已记 memory）
   - **Q11 重大根因 + Phase 1A 重写**（2026-06-17，已被证伪）：OpenClaw 思路一度被认为对，结论"HBuilderX 5.07 标准 iOS 基座 = 5+Runtime 不支持 Vue 3"。**已被证伪** — 用户用 HBuilderX 新建项目时，Vue 版本选择缺省就是 Vue 3，**5+Runtime 官方支持 Vue 3**。之前把"weex context 进程名 + weex-vue-render H5 仓库 Vue 2 硬编码"当 5+Runtime 不支持 Vue 3 的证据是**过度推断**（weex-vue-render 是 H5 渲染器，跟 iOS 原生基座 JS 引擎不是一回事）。Q9/Q10/Q11 修复 commit 保留（无害修复），但**不是根因修复**
   - **Q11 修正后真正方向**（2026-06-17）：白屏是**我们项目配置问题**，不是 5+Runtime 架构问题。Phase 1A 恢复"5 分钟标准基座"流程。**真正下一步**：HBuilderX → 新建项目 → uni-app（Vue 3）→ 默认模板 → 运行到 iOS 模拟器（对照组测试），默认模板能跑通 = diff 默认模板 vs 我们项目配置找出差异；默认模板也白屏 = 5+Runtime 真有 bug 再走自定义基座
-- **🎯 Q11-B 白屏终极根因（2026-06-17，SSH Mac 验证）**：对比 vue3_test（跑通）vs soundcare-native/app（白屏）的编译产物：
-  - vue3_test 是 HBuilderX **IDE 内置编译器**编译，产物在 `unpackage/dist/dev/app-plus/`，含 18 个文件，**有 `app-service.js` + `__uniappview.html`**（5+Runtime 必需入口）
-  - 我们项目是 **uni-cli Vite 编译**，产物在 `dist/dev/app-plus/`，只有 5 个文件（`index.html` + Vite assets），**完全没有 `app-service.js` 和 `__uniappview.html`**
-  - 5+Runtime 启动时找 `app-service.js` 加载 JS 桥 → 找不到 → 静默失败 → 白屏
-  - **架构不匹配**：HBuilderX 标准基座是 5+Runtime（需要 IDE 编译产物），uni-cli Vite 输出标准 Web 产物（5+Runtime 不认）
-  - **之前所有"修复"（Q9 manifest / Q10 CORS / Q11 5+Runtime 不支持 Vue 3）都不是根因**——是无害修复
-  - **真正解法**：**Phase 1A 不存在**，uni-cli Vite 项目必须走 Phase 1B 自定义基座（uni-app 官方对 Vite 项目的标准推荐路径）
-- ⏸ **Mac 端待用户执行**：Phase 0（已验证 ✅）→ **Phase 1B（iPhone/iPad 模拟器 + 自定义基座，30 分钟）** → Phase 2（付费 + 自定义基座 + 真 HealthKit + 后端）
+- ⏸ **Mac 端待用户执行**：Phase 0（已验证 ✅）→ Phase 1A（标准基座 + 模拟器，5 分钟，需先做对照组测试定位配置差异）→ Phase 1B（iPhone + 自定义基座）→ Phase 2（付费 + 自定义基座 + 真 HealthKit + 后端）
 - ⏸ v1.2：player 接入 startHRVSession（963 行，重构风险高）
 - ⏸ v2.0：付费 Apple Developer + 自定义基座 + 真 HealthKit（可选升级）
 
