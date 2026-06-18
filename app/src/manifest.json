@@ -1,48 +1,49 @@
 {
-  "name": "SoundCare",
-  "appid": "__UNI__SOUNDCARE_NATIVE",
-  "description": "SoundCare HRV Native APP",
-  "versionName": "1.0.0",
-  "versionCode": "100",
-  "transformPx": false,
-  "vueVersion": "3",
-  "app-plus": {
-    "usingComponents": true,
-    "nvueStyleCompiler": "vue3",
-    "compilerVersion": 3,
-    "splashscreen": {
-      "alwaysShowBeforeRender": false,
-      "waiting": false,
-      "autoclose": true,
-      "delay": 0
+    "name" : "SoundCare",
+    "appid" : "__UNI__9AB783E",
+    "description" : "SoundCare HRV Native APP (Phase 1A — 模拟器+标准基座，无原生插件)",
+    "versionName" : "1.0.0",
+    "versionCode" : "100",
+    "transformPx" : false,
+    "vueVersion" : "3",
+    "app-plus" : {
+        "usingComponents" : true,
+        "nvueStyleCompiler" : "uni-app",
+        "compilerVersion" : 3,
+        "splashscreen" : {
+            "alwaysShowBeforeRender" : false,
+            "waiting" : false,
+            "autoclose" : true,
+            "delay" : 0
+        },
+        "modules" : {},
+        "nativePlugins" : {},
+        "distribute" : {
+            "android" : {
+                "permissions" : [ "android.permission.INTERNET" ]
+            },
+            "ios" : {
+                "appid" : "Frank.Swift-Practice",
+                "dSYMs" : false
+            }
+        }
     },
-    "modules": {},
-    "nativePlugins": {},
-    "distribute": {
-      "android": {
-        "permissions": [
-          "<uses-permission android:name=\"android.permission.INTERNET\"/>"
-        ]
-      },
-      "ios": {}
+    "mp-weixin" : {
+        "appid" : "",
+        "setting" : {
+            "urlCheck" : false,
+            "es6" : true,
+            "postcss" : true,
+            "minified" : true
+        },
+        "usingComponents" : true,
+        "permission" : {}
+    },
+    "h5" : {
+        "router" : {
+            "mode" : "hash",
+            "base" : "./"
+        },
+        "title" : "SoundCare"
     }
-  },
-  "mp-weixin": {
-    "appid": "",
-    "setting": {
-      "urlCheck": false,
-      "es6": true,
-      "postcss": true,
-      "minified": true
-    },
-    "usingComponents": true,
-    "permission": {}
-  },
-  "h5": {
-    "router": {
-      "mode": "hash",
-      "base": "./"
-    },
-    "title": "SoundCare"
-  }
 }
