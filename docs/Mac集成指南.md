@@ -173,6 +173,8 @@ npm install
 | Phase 2（付费 + HealthKit） | 本来就要自带证书 | 不变 |
 | iOS 模拟器（任意阶段） | 标准基座 | **不受影响**，仍可用标准基座跑 UI 流程 |
 
+> **2026-06-21 端到端验证 ✅**：iOS 模拟器 + 标准基座 + JS Mock 完整跑通，**iPhone 17 Pro iOS 26.1 模拟器上** Phase 1A 全链路验证完成（首页 → 设备配对 → HRV 40.0ms Mock → HRV 监测 5 级状态 + 30 秒 RMSSD 滑动窗口）。详见 §9 Q12。
+
 > 简言之：**Phase 1 也不再"开箱即用"了**，但仍可免费跑通（Apple ID + 自签 dev cert 不花钱），只是 Mac 端需要多走 §4.0.5 的"导入证书"流程，并跳过 DCloud 的"标准基座"选项，自己做 **自定义调试基座**。
 >
 > **替代方案**：如果 Mac 端暂时不想做自定义基座，可以先用 iOS 模拟器（标准基座可用）跑通 UI 流程。但模拟器无 HealthKit，无法验证真数据流。
@@ -1094,6 +1096,111 @@ git pull                                    # 拉到含 fix-app-inside-cors 的 
 - 经常跑模拟器可以考虑做自定义基座（避免每次依赖 HBuilderX 标准基座版本变动）—— 但**不**是因为白屏，是因为版本稳定性
 - iPhone 真机（Phase 1B）**必须**做自定义基座（DCloud 公共签名停用，§3.6）
 
+### Q12: HBuilderX 5.07 "编译成功"但 iOS 模拟器不启动 App / 模拟器停留在旧 bundle / 启动后 HBuilderX log 报 `TypeError: Cannot read properties of undefined (reading 'document')`？
+
+> **2026-06-21 重大补充**：Phase 1A 端到端验证时遇到的最后一个根因 — **Mac 端 `app/.hbuilderx/launch.json` 的 `type` 字段写了 `uni-app:app-ios_simulator`**，HBuilderX 5.07 不识别，模拟器不启动。**修法**：SSH 改 `launch.json` 的 type 为 `uni-app:app-ios`（不带后缀），关 HBuilderX 重开项目。
+
+#### 症状
+
+- HBuilderX 显示"编译成功"
+- 模拟器**没启动**或停留在**老的 bundle**（上次装的别的 App / 之前的 SoundCare 版本）
+- HBuilderX log 路径 `~/Library/Application Support/HBuilder X/.log` 出现：
+  ```
+  TypeError: Cannot read properties of undefined (reading 'document')
+  ... launcher:uni-app:h5-Chrome:page
+  ```
+- 偶尔显示"运行成功"但 `xcrun simctl list devices booted` 看模拟器根本没启动
+
+#### 原因（5 个根因 + 1 个 Mac 本地 bug）
+
+Phase 1A 端到端验证时遇到的 5 个连环坑 + 1 个 Mac 端本地 bug，**每个 commit 暴露下一个根因**：
+
+| 序号 | Commit / 操作 | 修复内容 | 没修之前的症状 |
+|------|---------------|---------|---------------|
+| 1 | `6186d54` | 缺 `@dcloudio/uni-app-plus` + `@dcloudio/uni-app-vite`（不在 transitive deps 里）→ vite build 只产 704B modulepreload polyfill，`src/pages/` 全部没编译 | `npx uni build -p app` 输出 704B 产物 |
+| 2 | `10ad97b` | npm scripts `app-inside` → `app-plus`（`-p app-inside` 不被 vite-plugin-uni 当 app+ 平台） | 改 `app-plus` 后正常产 59579B app-service.js |
+| 3 | `99772da` | 删除过时 fix-app-inside-cors 插件（vite 5.2.8 不需要，已被 Q10 vite.config.js 里的同名插件取代） | 留着无害但误导后人 |
+| 4 | `9d1a94d` | `.gitignore` 加 `soundcare/`（Mac 本地 HBuilderX 验证项目，gitignored 避免污染仓库） | Mac 端旧实验项目不会被 git 跟踪 |
+| 5 | **Mac SSH 改 launch.json** | `type: "uni-app:app-ios_simulator"` → `type: "uni-app:app-ios"`（HBuilderX 5.07 **不支持**带后缀的 type） | "编译成功"但模拟器不启动 + HBuilderX log TypeError |
+
+#### 修复（Mac 端，2 分钟）
+
+```bash
+# 1. SSH 到 Mac
+ssh xuli@192.168.0.30
+
+# 2. 检查当前 launch.json
+cat ~/code/mtx/soundcare-native/app/.hbuilderx/launch.json
+
+# 3. 备份 + 改 type（必须用 Edit，不要 sed/awk 整文件覆盖）
+#    type: "uni-app:app-ios_simulator"  →  type: "uni-app:app-ios"
+#    第一个 config = standard 基座（Phase 1A），第二个 = custom 基座（Phase 1B/2）
+
+# 4. 验证
+cat ~/code/mtx/soundcare-native/app/.hbuilderx/launch.json
+# 期望输出（type 不带 _simulator 后缀）：
+# {
+#     "version" : "1.0",
+#     "configurations" : [
+#         {
+#             "customPlaygroundType" : "device",
+#             "playground" : "standard",
+#             "type" : "uni-app:app-ios"
+#         },
+#         {
+#             "customPlaygroundType" : "device",
+#             "playground" : "custom",
+#             "type" : "uni-app:app-ios"
+#         }
+#     ]
+# }
+
+# 5. HBuilderX 关项目重开（必须！launch.json 改动只有关闭项目才能 reload）
+#    HBuilderX → 视图 → 显示项目管理器 → 右键 app 项目 → 关闭项目 → 重新打开
+```
+
+**launch.json 是 gitignored**（`.gitignore` 第 9 行 `app/.hbuilderx/launch.json`），Mac 端和 Windows 端是独立两份，不会通过 git 同步。**Mac 端必须 SSH 改，Windows 端无法影响**。
+
+#### 5 个根因的教训（避免未来再走 3 天弯路）
+
+1. **缺 transitive dep**：`@dcloudio/vite-plugin-uni alpha-50001` 不会自动装 `@dcloudio/uni-app-plus` / `uni-app-vite`，必须显式列在 `package.json` dependencies。**检测**：`ls node_modules/@dcloudio/ | grep uni-app-plus` 应该有输出。
+2. **`-p app-inside` 是错平台名**：HBuilderX 5.07 CLI 只认 `-p app-plus`（或别名 `-p app`）。`-p app-inside` 会让 vite-plugin-uni 跳过 app+ 平台处理，只产 polyfill。**检测**：`npm run dev:app-plus` 后 `ls dist/dev/app-plus/` 应该看到完整产物（`app-service.js` ~59KB、`index.html` 等）。
+3. **过时 plugin 留不留**：CORS fix 在 vite.config.js 里已经有了，老 `fix-app-inside-cors` 插件删掉避免误导。
+4. **`.gitignore` Mac 本地项目**：HBuilderX 验证时临时建的 `soundcare/` 项目目录要加进 .gitignore。
+5. **launch.json type 不带后缀**：HBuilderX 5.07 注册的 launch CLI 命令只有 `launch app-ios` / `launch app-android` / `launch web` / `launch mp-*`，**没有** `launch app-ios_simulator`。launch.json 写带后缀的 type → 路由回落 → `launcher:uni-app:h5-Chrome:page` 抛 TypeError。
+
+#### 诊断命令速查
+
+```bash
+# 1. 看 HBuilderX log
+tail -100 "~/Library/Application Support/HBuilder X/.log" | grep -E "launcher|TypeError|app-ios"
+
+# 2. 看模拟器状态
+xcrun simctl list devices booted
+# 期望：iPhone 17 Pro (UDID) Booted
+
+# 3. 看 vite build 产物大小（验证依赖装对没）
+ls -lh dist/dev/app-plus/
+# 期望：app-service.js ~59KB，index.html ~1KB
+# 如果只有 704B index.html → 缺依赖（根因 1）
+
+# 4. 看 launch.json type
+cat app/.hbuilderx/launch.json | grep type
+# 期望：两个 "type" : "uni-app:app-ios"（不带 _simulator）
+```
+
+#### Phase 1A 完整修复后状态（2026-06-21 已验证 ✅）
+
+```
+1. 首页加载 → 底部 "⌚ 设备配对" 按钮
+2. 设备配对页 → 选 Apple Watch → 显示 "已连接"
+3. 点 "测试数据流" → 5 秒内收到 HRV 40.0ms (Mock)
+4. TabBar → HRV 监测 → 5 级状态 + 30 秒 RMSSD 滑动窗口
+5. 停止监测 → 数据流停止
+```
+
+**零证书 + 零 HealthKit + 零后端 + iPhone 17 Pro 模拟器（iOS 26.1）** 跑通。
+
 ---
 
 ---
@@ -1101,6 +1208,8 @@ git pull                                    # 拉到含 fix-app-inside-cors 的 
 ## 10. 完整流程 checklist
 
 > **2026-06-17 重大修正（Q12 二次 SSH 验证后）**：白屏**真因 = Mac 端没 `git pull` 到 commit `64fbb2f` 的 vite.config.js CORS 修复**（不是 5+Runtime 不支持 Vue 3，不是找不到 app-service.js，不是 Phase 1A 不存在）。**Mac 端 `git pull` 拉最新后 Phase 1A = 5 分钟标准基座**。完整推理链和过度推断教训见 §9 Q11。
+>
+> **2026-06-21 端到端验证完成 ✅**（Q12 第四次 SSH 验证）：iPhone 17 Pro iOS 26.1 模拟器上 Phase 1A 完整跑通（首页 → 设备配对 → HRV 40.0ms Mock → HRV 监测 5 级状态 + 30 秒 RMSSD 滑动窗口）。5 个连环根因 + 1 个 Mac 本地 launch.json bug 全部修完，详见 §9 Q12。
 >
 > **后端依赖**：Phase 1A/1B 的 HRV 数据流测试**不需要** Python 后端（§6.0）；播放页 / 生成页 / 首页 / 个人页 才需要。
 >
@@ -1130,12 +1239,15 @@ git pull                                    # 拉到含 fix-app-inside-cors 的 
 ### Phase 1A（模拟器 + 标准基座 + JS Mock，5 分钟，**不需要后端**）
 
 > **2026-06-17 重大修正**：之前我误判"HBuilderX 5.07 标准基座不支持 Vue 3"，已证伪 — 新建项目缺省就是 Vue 3。**Phase 1A 仍是"模拟器 + 标准基座"**，5 分钟零证书零后端。
+>
+> **2026-06-21 端到端验证完成 ✅**：iPhone 17 Pro iOS 26.1 模拟器上跑通首页 → 设备配对（HRV 40.0ms Mock）→ HRV 监测（5 级状态 + 30 秒 RMSSD 滑动窗口）。5 个连环根因 + 1 个 Mac 本地 bug 全部修完（commit `6186d54` + `10ad97b` + `99772da` + `9d1a94d` + Mac SSH 改 launch.json，详见 §9 Q12）。
 
 按顺序勾选：
 
 - [ ] Mac 已安装 Xcode 26.3 + HBuilderX 3.95+
 - [ ] git clone + npm install 完成
 - [ ] **确认 `app/vite.config.js` 包含 `fix-app-inside-cors` 插件**（git pull 最新代码就有了，详见 §9 Q10）
+- [ ] **确认 `app/.hbuilderx/launch.json` 的 `type` 是 `uni-app:app-ios`**（**不带 _simulator 后缀**！详见 §9 Q12 第 5 根因）
 - [ ] HBuilderX 打开 app/ 目录成功（首次遇到 §3.5 的 4 个坑按对应说明修）
 - [ ] **临时注释掉 manifest.json 的 SoundCareHRV 声明**（**关键！** 防止标准基座启动白屏，详见 §9 Q9）
 - [ ] HBuilderX → 运行 → 运行到 **iOS 模拟器**（**标准基座**直接可选）
