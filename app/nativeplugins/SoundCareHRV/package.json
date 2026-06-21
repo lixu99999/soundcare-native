@@ -13,7 +13,7 @@
           "class": "SoundCareHRVModule"
         }
       ],
-      "integrateType": "source",
+      "integrateType": "framework",
       "dependencies": [],
       "frameworks": ["HealthKit"]
     },

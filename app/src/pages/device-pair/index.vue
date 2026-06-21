@@ -5,6 +5,15 @@
       <text class="subtitle">连接您的可穿戴设备</text>
     </view>
 
+    <!-- v1.0 演示模式提示 -->
+    <view class="demo-banner">
+      <view class="demo-banner-row">
+        <text class="demo-banner-icon">🎭</text>
+        <text class="demo-banner-title">v1.0 演示模式</text>
+      </view>
+      <text class="demo-banner-text">未连接 Apple Watch 时，点击「Apple Watch」可模拟配对流程，但不会采集真实 HRV 数据。真实数据采集需要 iPhone + Apple Watch + 付费 Apple Developer 账号。</text>
+    </view>
+
     <view class="device-list">
       <!-- Apple Watch：v1 实装 -->
       <view class="device-item" @click="pairDevice('apple')">
@@ -327,4 +336,31 @@ export default {
   line-height: 1.6;
   white-space: pre-line;
 }
+  /* v1.0 演示模式 banner */
+  .demo-banner {
+    margin: 20rpx 30rpx 10rpx;
+    padding: 20rpx 24rpx;
+    background: linear-gradient(135deg, rgba(255, 107, 0, 0.15) 0%, rgba(255, 140, 66, 0.10) 100%);
+    border: 1rpx solid rgba(255, 107, 0, 0.4);
+    border-radius: 16rpx;
+  }
+  .demo-banner-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8rpx;
+  }
+  .demo-banner-icon {
+    font-size: 32rpx;
+    margin-right: 12rpx;
+  }
+  .demo-banner-title {
+    font-size: 28rpx;
+    font-weight: bold;
+    color: #FF8C42;
+  }
+  .demo-banner-text {
+    font-size: 24rpx;
+    color: rgba(255, 255, 255, 0.75);
+    line-height: 1.5;
+  }
 </style>

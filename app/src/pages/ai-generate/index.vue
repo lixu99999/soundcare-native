@@ -12,8 +12,12 @@ onMounted(() => {
   const currentPage = pages[pages.length - 1]
   const options = currentPage.options || {}
 
-  prompt.value = options.prompt ? decodeURIComponent(options.prompt) : ''
-  scene.value = options.scene || ''
+  // 从 storage 读 LLM JSON 响应（5+Runtime URL params 不可靠）
+  const llmResult = uni.getStorageSync('llmOptimizedResult') || {};
+  prompt.value = llmResult.optimized_prompt || ''
+  scene.value = llmResult.scene || ''
+  // 用完即清，避免下次进入读到上次的
+  uni.removeStorageSync('llmOptimizedResult');
 })
 
 // 开始生成音乐

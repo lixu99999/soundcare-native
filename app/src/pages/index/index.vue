@@ -235,6 +235,12 @@ const startPlayback = () => {
     url: '/pages/player/index'
   })
 }
+
+const goToDevicePair = () => {
+  uni.navigateTo({
+    url: '/pages/device-pair/index'
+  })
+}
 </script>
 
 <template>
@@ -366,8 +372,8 @@ const startPlayback = () => {
       <button class="btn-primary" @tap="startPlayback">
         🎵 开始播放专属音乐
       </button>
-      <button class="btn-secondary">
-        ⌚ 从手表同步HRV
+      <button class="btn-secondary" @tap="goToDevicePair">
+        ⌚ 设备配对
       </button>
     </view>
   </view>
