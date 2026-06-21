@@ -8,6 +8,7 @@ pnpm-lock.yaml
 app/unpackage/dist/
 app/unpackage/cache/
 app/unpackage/release/
+app/dist/
 
 # IDE configs (user-specific)
 app/.hbuilderx/launch.json
