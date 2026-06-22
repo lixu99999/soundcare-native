@@ -24,18 +24,20 @@
             },
             "ios" : {
                 "appid" : "Frank.Swift-Practice",
-                "dSYMs" : false,
-                "icons" : {
-                    "appstore" : "static/icons/appstore.png",
+                "dSYMs" : false
+            },
+            "icons" : {
+                "ios" : {
+                    "appstore" : "src/static/icons/appstore.png",
                     "iphone" : {
-                        "app@2x" :          "static/icons/app-120.png",
-                        "app@3x" :          "static/icons/app-180.png",
-                        "spotlight@2x" :    "static/icons/spotlight@2x.png",
-                        "spotlight@3x" :    "static/icons/spotlight@3x.png",
-                        "settings@2x" :     "static/icons/settings@2x.png",
-                        "settings@3x" :     "static/icons/settings@3x.png",
-                        "notification@2x" : "static/icons/notification@2x.png",
-                        "notification@3x" : "static/icons/notification@3x.png"
+                        "app@2x" :          "src/static/icons/app-120.png",
+                        "app@3x" :          "src/static/icons/app-180.png",
+                        "spotlight@2x" :    "src/static/icons/spotlight@2x.png",
+                        "spotlight@3x" :    "src/static/icons/spotlight@3x.png",
+                        "settings@2x" :     "src/static/icons/settings@2x.png",
+                        "settings@3x" :     "src/static/icons/settings@3x.png",
+                        "notification@2x" : "src/static/icons/notification@2x.png",
+                        "notification@3x" : "src/static/icons/notification@3x.png"
                     }
                 }
             }
