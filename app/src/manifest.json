@@ -17,7 +17,22 @@
             "delay" : 0
         },
         "modules" : {},
-        "nativePlugins" : {},
+        "nativePlugins" : {
+            "SoundCareHRV" : {
+                "__plugin_info__" : {
+                    "name" : "SoundCareHRV",
+                    "description" : "Apple Watch HRV 实时监测原生插件（v1 仅 iOS）",
+                    "platforms" : "Android,iOS",
+                    "url" : "",
+                    "android_package_name" : "",
+                    "ios_bundle_id" : "",
+                    "isCloud" : false,
+                    "bought" : -1,
+                    "pid" : "",
+                    "parameters" : {}
+                }
+            }
+        },
         "distribute" : {
             "android" : {
                 "permissions" : [ "android.permission.INTERNET" ]
@@ -30,12 +45,12 @@
                 "ios" : {
                     "appstore" : "src/static/icons/appstore.png",
                     "iphone" : {
-                        "app@2x" :          "src/static/icons/app-120.png",
-                        "app@3x" :          "src/static/icons/app-180.png",
-                        "spotlight@2x" :    "src/static/icons/spotlight@2x.png",
-                        "spotlight@3x" :    "src/static/icons/spotlight@3x.png",
-                        "settings@2x" :     "src/static/icons/settings@2x.png",
-                        "settings@3x" :     "src/static/icons/settings@3x.png",
+                        "app@2x" : "src/static/icons/app-120.png",
+                        "app@3x" : "src/static/icons/app-180.png",
+                        "spotlight@2x" : "src/static/icons/spotlight@2x.png",
+                        "spotlight@3x" : "src/static/icons/spotlight@3x.png",
+                        "settings@2x" : "src/static/icons/settings@2x.png",
+                        "settings@3x" : "src/static/icons/settings@3x.png",
                         "notification@2x" : "src/static/icons/notification@2x.png",
                         "notification@3x" : "src/static/icons/notification@3x.png"
                     }
