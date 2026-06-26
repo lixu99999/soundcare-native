@@ -6,6 +6,6 @@ export default defineConfig({
     uni()
   ],
   server: {
-    port: 3001
+    port: 3000
   }
 })

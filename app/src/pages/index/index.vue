@@ -154,9 +154,13 @@ const submitUserInput = async () => {
     })
 
     if (response.statusCode === 200 && response.data) {
-      // 跳转到AI生成专属页，传递LLM优化的完整prompt
+      // 5+Runtime 不解析 URL params（ai-generate 走 storage），写入 storage 传递
+      uni.setStorageSync('llmOptimizedResult', {
+        optimized_prompt: response.data.optimized_prompt,
+        scene: response.data.scene
+      })
       uni.navigateTo({
-        url: `/pages/ai-generate/index?prompt=${encodeURIComponent(response.data.optimized_prompt)}&scene=${response.data.scene}`
+        url: '/pages/ai-generate/index'
       })
     }
   } catch (error) {
