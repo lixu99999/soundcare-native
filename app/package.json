@@ -3,25 +3,27 @@
   "version": "1.0.0",
   "description": "SoundCare Native APP (HRV Paid Version)",
   "scripts": {
-    "dev:app-inside": "npx uni -p app-inside",
-    "dev:app-android": "npx uni -p app-android",
-    "dev:mp-weixin": "npx uni",
-    "build:app-inside": "npx uni build -p app-inside",
-    "build:app-android": "npx uni build -p app-android",
+    "dev:app-plus": "npx uni -p app-plus",
+    "dev:h5": "npx uni -p h5",
+    "dev:mp-weixin": "npx uni -p mp-weixin",
+    "build:app-plus": "npx uni build -p app-plus",
+    "build:h5": "npx uni build -p h5",
     "build:mp-weixin": "npx uni build -p mp-weixin"
   },
   "dependencies": {
-    "@dcloudio/uni-app": "3.0.0-alpha-5000120260205002",
-    "@dcloudio/uni-components": "3.0.0-alpha-5000120260205002",
-    "@dcloudio/uni-h5": "3.0.0-alpha-5000120260205002",
-    "@dcloudio/uni-mp-weixin": "3.0.0-alpha-5000120260205002",
+    "@dcloudio/uni-app": "3.0.0-alpha-1000920260615733",
+    "@dcloudio/uni-app-plus": "3.0.0-alpha-1000920260615733",
+    "@dcloudio/uni-app-vite": "3.0.0-alpha-1000920260615733",
+    "@dcloudio/uni-components": "3.0.0-alpha-1000920260615733",
+    "@dcloudio/uni-h5": "3.0.0-alpha-1000920260615733",
+    "@dcloudio/uni-mp-weixin": "3.0.0-alpha-1000920260615733",
     "vue": "3.4.21"
   },
   "devDependencies": {
-    "@dcloudio/types": "3.4.29",
-    "@dcloudio/uni-automator": "3.0.0-alpha-5000120260205002",
-    "@dcloudio/uni-cli-shared": "3.0.0-alpha-5000120260205002",
-    "@dcloudio/vite-plugin-uni": "3.0.0-alpha-5000120260205002",
-    "vite": "5.2.8"
+    "@dcloudio/types": "3.4.31",
+    "@dcloudio/uni-automator": "3.0.0-alpha-1000920260615733",
+    "@dcloudio/uni-cli-shared": "3.0.0-alpha-1000920260615733",
+    "@dcloudio/vite-plugin-uni": "3.0.0-alpha-1000920260615733",
+    "vite": "7.3.3"
   }
 }

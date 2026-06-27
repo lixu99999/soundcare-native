@@ -8,6 +8,7 @@ pnpm-lock.yaml
 app/unpackage/dist/
 app/unpackage/cache/
 app/unpackage/release/
+app/dist/
 
 # IDE configs (user-specific)
 app/.hbuilderx/launch.json
@@ -41,3 +42,8 @@ app/nativeplugins/*/Pods/
 *.xcodeproj/xcuserdata/
 *.xcodeproj/project.xcworkspace/xcuserdata/
 DerivedData/
+
+
+# Mac 本地 HBuilderX 5.07 bundled 验证项目（标准基座白屏验证用）
+# 不是开发项目，Mac 独享，Windows 不需要同步
+soundcare/

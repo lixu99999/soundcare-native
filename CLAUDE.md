@@ -38,7 +38,14 @@ iOS HRV 原生插件开发。
   - **Q11 重大根因 + Phase 1A 重写**（2026-06-17，已被证伪）：OpenClaw 思路一度被认为对，结论"HBuilderX 5.07 标准 iOS 基座 = 5+Runtime 不支持 Vue 3"。**已被证伪** — 用户用 HBuilderX 新建项目时，Vue 版本选择缺省就是 Vue 3，**5+Runtime 官方支持 Vue 3**。之前把"weex context 进程名 + weex-vue-render H5 仓库 Vue 2 硬编码"当 5+Runtime 不支持 Vue 3 的证据是**过度推断**（weex-vue-render 是 H5 渲染器，跟 iOS 原生基座 JS 引擎不是一回事）。Q9/Q10/Q11 修复 commit 保留（无害修复），但**不是根因修复**
   - **Q11 修正后真正方向**（2026-06-17）：白屏是**我们项目配置问题**，不是 5+Runtime 架构问题。Phase 1A 恢复"5 分钟标准基座"流程。**真正下一步**：HBuilderX → 新建项目 → uni-app（Vue 3）→ 默认模板 → 运行到 iOS 模拟器（对照组测试），默认模板能跑通 = diff 默认模板 vs 我们项目配置找出差异；默认模板也白屏 = 5+Runtime 真有 bug 再走自定义基座
   - **🎯 Q12 真因锁定（2026-06-17，SSH Mac 二次验证）**：白屏**根本不是配置问题，也不是 5+Runtime 架构问题**——是 **Mac 端没 git pull 到 commit `64fbb2f` 的 vite.config.js CORS 修复**。HBuilderX 5+ 对两种项目用不同加载路径：(1) 单文件 IDE 编译 → `unpackage/` → 5+Runtime 加载 `app-service.js`（vue3_test 默认模板走这条，跑通）；(2) **uni-cli Vite 编译** → `dist/dev/app-plus/index.html` → 5+Runtime 通过 **file:// 加载**（soundcare-native 走这条）。Vite 默认输出 `<script type="module" crossorigin>`，file:// origin 是 null → CORS 拒绝 → 白屏。Mac 端 vite.config.js 没 fix-app-inside-cors 插件（HEAD = `21f9968`，缺 64fbb2f 之后 4 个 commit），所以 HBuilderX IDE 编译产物必然带 crossorigin。**修复 = Mac 端 `git pull` 拉到最新 vite.config.js + HBuilderX 重新编译**。撤回 1af4f68 + 528a44b 的"Phase 1A 不存在"叙事是错的过度推断，revert 到 0946969 状态。Phase 1A = "5 分钟标准基座"**完全成立**
-- ⏸ **Mac 端待用户执行**：`git pull` 拉最新 → Phase 0（已验证 ✅）→ Phase 1A（标准基座 + 模拟器，5 分钟，git pull 后 vite.config.js 含 CORS 修复即可跑通）→ Phase 1B（iPhone + 自定义基座）→ Phase 2（付费 + 自定义基座 + 真 HealthKit + 后端）
+  - **🎯 Phase 1A 端到端验证完成（2026-06-21）**：iPhone 17 Pro iOS 26.1 模拟器上跑通全链路（首页 → 设备配对 → HRV 40.0ms Mock → HRV 监测 5 级状态 + 30 秒 RMSSD 滑动窗口）。**5 个连环根因 + 1 个 Mac 本地 bug** 全部修完：
+    - `6186d54` 缺 `@dcloudio/uni-app-plus` + `uni-app-vite`（vite-plugin-uni alpha-50001 的 transitive dep 不会自动装）
+    - `10ad97b` npm scripts `app-inside` → `app-plus`（`-p app-inside` 不是 vite-plugin-uni 识别的 app+ 平台）
+    - `99772da` 删除过时 fix-app-inside-cors 插件（vite 5.2.8 不需要）
+    - `9d1a94d` `.gitignore` 加 `soundcare/`（Mac 本地 HBuilderX 验证项目）
+    - **Mac SSH 改 `app/.hbuilderx/launch.json`**：`type: "uni-app:app-ios_simulator"` → `type: "uni-app:app-ios"`（HBuilderX 5.07 **不支持**带后缀的 type，会回落到 `launcher:uni-app:h5-Chrome:page` 抛 TypeError "Cannot read properties of undefined (reading 'document')"）
+  - 详细修复链 + 5 个根因教训见 `docs/Mac集成指南.md` §9 Q12；关键事实记入 memory `hbuilderx_5_07_launch_json_type.md` + `hbuilderx_5_07_phase1a_verified.md`
+- ✅ Phase 1A 完成（2026-06-21）。下一步：Mac 端执行 Phase 1B（iPhone 真机 + 自定义基座）→ Phase 2（付费 + 自定义基座 + 真 HealthKit + 后端）
 - ⏸ v1.2：player 接入 startHRVSession（963 行，重构风险高）
 - ⏸ v2.0：付费 Apple Developer + 自定义基座 + 真 HealthKit（可选升级）
 
