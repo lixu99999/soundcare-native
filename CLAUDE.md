@@ -74,18 +74,25 @@ iOS HRV 原生插件开发。
 - [ ] 进入"HRV 监测" → 启动 → 看到 Mock 数据流
 - [ ] 停止监测
 
-### Phase 1B（iPhone 真机 UX，免费 30 分钟）
+### Phase 1B（iPhone 真机 UX，✅ 2026-06-27 验证完成）
 
-- [ ] Phase 1A 全部勾完
-- [ ] 用自己的免费 Apple ID 登录 Xcode（§4.0.5）
-- [ ] Xcode 自动生成 Personal Team "Apple Development" 证书
-- [ ] HBuilderX → 制作自定义调试基座（**不**勾选 HealthKit，§4.2）
-- [ ] iPhone 连 Mac → 信任设备
-- [ ] HBuilderX → 运行 → 运行到 iPhone 真机（**自定义基座**）
-- [ ] 验证首页 / 生成 / 播放 / 个人页
-- [ ] 进入"设备配对" → 测试数据流（5 秒内应看到 Mock 事件）
-- [ ] 进入"HRV 监测" → 启动 → 看到 Mock 数据流
-- [ ] 停止监测
+**走的路径**：快速安心打包（**不**是自定义调试基座！）+ free Apple ID + DCloud 云签 IPA + Xcode 安装
+
+- [x] Phase 1A 全部勾完
+- [x] 用 free Apple ID 登录 Xcode
+- [x] HBuilderX → 发行 → 原生 App-云打包 → 选"快速安心打包"
+- [x] Bundle ID = Frank.soundcare
+- [x] DCloud 云端编译 + 用 free Apple ID 签 IPA
+- [x] IPA 自动下载到 `app/dist/release/ipa/`
+- [x] Xcode → Devices → iPhone 15 Pro → Install
+- [x] iPhone 信任证书
+- [x] 启动 SoundCare → LLM 真英文长 prompt + 音频生成播放正常
+- [x] 进入"设备配对" → 看到 Mock 事件
+- [x] 进入"HRV 监测" → 看到 JS Mock 数据流（plugin==null fallback）
+
+**关键纠正**：之前 memory 写的"Phase 1B 必须付费 Apple Developer"是错的，那是"自定义调试基座"那条路的要求。**快速安心打包 + free Apple ID 完全够 Phase 1B 真机 UX 验证**。HRV 原生插件不加载，自动走 JS Mock。
+
+下一步 Phase 2 才需要付费 Apple Developer（真 Apple Watch HRV 采集）。
 
 ### Phase 2（付费后升级）
 
