@@ -38,7 +38,7 @@
                 "permissions" : [ "android.permission.INTERNET" ]
             },
             "ios" : {
-                "appid" : "Frank.Swift-Practice",
+                "appid" : "Frank.soundcare",
                 "dSYMs" : false
             },
             "icons" : {
